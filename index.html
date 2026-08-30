@@ -1,0 +1,856 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Bütçe Defteri</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --ink:#1F3327;
+    --ink-soft:#33513F;
+    --paper:#EFEADA;
+    --card:#FFFDF8;
+    --gold:#B08D34;
+    --amber:#C07A24;
+    --good:#4C7A4F;
+    --good-bg:#E7EEE3;
+    --warn:#B23A48;
+    --warn-bg:#F4E2E1;
+    --line:#D9D0B8;
+    --muted:#7A7057;
+    --spine:16px;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    background:var(--paper);
+    color:var(--ink);
+    font-family:'IBM Plex Sans',system-ui,sans-serif;
+    font-size:15px;
+    line-height:1.45;
+    -webkit-font-smoothing:antialiased;
+    padding-left:var(--spine);
+    min-height:100vh;
+    background-image:
+      repeating-linear-gradient(180deg, var(--ink) 0 6px, transparent 6px 14px);
+    background-size:var(--spine) 100%;
+    background-repeat:repeat-y;
+    background-position:left top;
+  }
+  .num{font-family:'IBM Plex Mono',monospace;font-variant-numeric:tabular-nums;}
+  .wrap{max-width:900px;margin:0 auto;padding:0 20px 64px;}
+  header{
+    position:sticky;top:0;z-index:20;
+    background:var(--paper);
+    padding:22px 20px 0;
+    border-bottom:1px solid var(--line);
+  }
+  .header-inner{max-width:900px;margin:0 auto;}
+  .brand{
+    display:flex;align-items:baseline;justify-content:space-between;
+    gap:12px;flex-wrap:wrap;
+    margin-bottom:16px;
+  }
+  .brand h1{
+    font-family:'Fraunces',serif;
+    font-weight:600;
+    font-size:26px;
+    letter-spacing:0.01em;
+    margin:0;
+  }
+  .brand .sub{
+    font-size:12px;
+    letter-spacing:0.14em;
+    text-transform:uppercase;
+    color:var(--muted);
+    margin-top:2px;
+  }
+  .tabs{display:flex;gap:4px;}
+  .tab-btn{
+    font-family:'IBM Plex Sans';
+    font-weight:600;
+    font-size:13.5px;
+    background:transparent;
+    border:1px solid transparent;
+    border-bottom:none;
+    padding:9px 16px;
+    border-radius:6px 6px 0 0;
+    cursor:pointer;
+    color:var(--muted);
+    transition:color .15s ease;
+  }
+  .tab-btn:hover{color:var(--ink);}
+  .tab-btn.active{
+    color:var(--ink);
+    background:var(--card);
+    border-color:var(--line);
+  }
+  .tab-btn:focus-visible, button:focus-visible, select:focus-visible, input:focus-visible{
+    outline:2px solid var(--gold);outline-offset:2px;
+  }
+  .io-row{
+    display:flex;align-items:center;gap:8px;flex-wrap:wrap;
+    padding:10px 0 14px;
+  }
+  .io-btn{
+    background:#fff;border:1px solid var(--line);color:var(--ink-soft);
+    font-family:'IBM Plex Sans';font-weight:600;font-size:12.5px;
+    padding:6px 12px;border-radius:4px;cursor:pointer;
+  }
+  .io-btn:hover{border-color:var(--ink);color:var(--ink);}
+  .import-status{font-size:12.5px;color:var(--muted);}
+  .import-status button{
+    background:none;border:1px solid var(--line);border-radius:4px;
+    font-family:'IBM Plex Sans';font-weight:600;font-size:12px;
+    padding:3px 10px;cursor:pointer;color:var(--ink);
+  }
+  .import-status button:hover{border-color:var(--ink);}
+  main{padding-top:22px;}
+  .card{
+    background:var(--card);
+    border:1px solid var(--line);
+    border-radius:3px;
+    box-shadow:3px 3px 0 var(--line);
+    padding:22px;
+    margin-bottom:22px;
+  }
+  .card h2{
+    font-family:'Fraunces',serif;
+    font-size:18px;
+    font-weight:600;
+    margin:0 0 16px;
+  }
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:22px;}
+  @media (max-width:680px){ .grid2{grid-template-columns:1fr;} }
+  label{
+    display:block;font-size:12px;font-weight:600;color:var(--muted);
+    text-transform:uppercase;letter-spacing:.06em;
+    margin-bottom:5px;margin-top:14px;
+  }
+  label:first-of-type{margin-top:0;}
+  input,select{
+    width:100%;
+    font-family:'IBM Plex Sans';
+    font-size:14.5px;
+    padding:9px 10px;
+    border:1px solid var(--line);
+    border-radius:4px;
+    background:#fff;
+    color:var(--ink);
+  }
+  input.num-input{font-family:'IBM Plex Mono';}
+  .submit-btn{
+    margin-top:18px;
+    width:100%;
+    background:var(--ink);
+    color:var(--paper);
+    border:none;
+    padding:11px 16px;
+    border-radius:4px;
+    font-weight:600;
+    font-size:14px;
+    cursor:pointer;
+    transition:background .15s ease;
+  }
+  .submit-btn:hover{background:var(--ink-soft);}
+  .field-error{color:var(--warn);font-size:12.5px;margin-top:6px;min-height:16px;}
+  .list-title{
+    font-family:'Fraunces',serif;font-size:16px;font-weight:600;margin:0 0 10px;
+  }
+  .entry-row{
+    display:flex;align-items:center;gap:10px;
+    padding:9px 0;border-bottom:1px dashed var(--line);
+    font-size:14px;
+  }
+  .entry-row:last-child{border-bottom:none;}
+  .entry-tag{
+    font-size:10.5px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;
+    padding:2px 7px;border-radius:20px;white-space:nowrap;
+  }
+  .entry-tag.exp{background:var(--warn-bg);color:var(--warn);}
+  .entry-tag.inc{background:var(--good-bg);color:var(--good);}
+  .entry-date{color:var(--muted);font-family:'IBM Plex Mono';font-size:12.5px;white-space:nowrap;}
+  .entry-cat{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .entry-amt{font-family:'IBM Plex Mono';font-weight:600;white-space:nowrap;}
+  .del-btn{
+    background:none;border:none;color:var(--muted);cursor:pointer;font-size:16px;
+    padding:2px 6px;border-radius:4px;line-height:1;
+  }
+  .del-btn:hover{color:var(--warn);background:var(--warn-bg);}
+  .empty-state{color:var(--muted);font-size:13.5px;padding:6px 0;}
+  .month-select-wrap{display:flex;align-items:center;gap:8px;margin:16px 0 20px;}
+  .month-select-wrap label{margin:0;}
+  .month-select-wrap select{width:auto;min-width:180px;}
+  .summary-cards{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-bottom:22px;}
+  @media (max-width:680px){.summary-cards{grid-template-columns:1fr;}}
+  .stat{
+    background:var(--card);border:1px solid var(--line);border-radius:3px;
+    box-shadow:3px 3px 0 var(--line);
+    padding:16px 18px;
+  }
+  .stat .k{font-size:11.5px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);font-weight:600;}
+  .stat .v{font-family:'IBM Plex Mono';font-size:22px;font-weight:600;margin-top:4px;}
+  .stat.income .v{color:var(--good);}
+  .stat.expense .v{color:var(--ink);}
+  .stat.savings .v.pos{color:var(--good);}
+  .stat.savings .v.neg{color:var(--warn);}
+  .warn-banner{
+    background:var(--warn-bg);color:var(--warn);border:1px solid var(--warn);
+    border-radius:4px;padding:12px 14px;font-size:13.5px;font-weight:500;margin-bottom:18px;
+  }
+  .cat-row{padding:12px 0;border-bottom:1px dashed var(--line);}
+  .cat-row:last-child{border-bottom:none;}
+  .cat-head{display:flex;align-items:baseline;gap:8px;}
+  .cat-name{font-weight:600;white-space:nowrap;}
+  .cat-leader{flex:1;border-bottom:1px dotted var(--line);height:0;transform:translateY(-5px);margin:0 4px;}
+  .cat-figures{white-space:nowrap;font-size:13.5px;}
+  .cat-figures .spent{font-weight:600;}
+  .cat-figures .over{color:var(--warn);}
+  .cat-figures .under{color:var(--ink);}
+  .bar-track{height:5px;background:var(--line);border-radius:3px;margin-top:8px;overflow:hidden;}
+  .bar-fill{height:100%;border-radius:3px;background:var(--good);transition:width .2s ease;}
+  .bar-fill.amber{background:var(--amber);}
+  .bar-fill.over{background:var(--warn);}
+  .plan-toggle{
+    background:none;border:1px solid var(--line);color:var(--muted);
+    font-size:12.5px;font-weight:600;padding:6px 12px;border-radius:4px;cursor:pointer;
+  }
+  .plan-toggle:hover{border-color:var(--ink);color:var(--ink);}
+  .plan-row{display:flex;align-items:center;gap:10px;padding:7px 0;}
+  .plan-row label{margin:0;flex:1;text-transform:none;font-size:14px;font-weight:400;color:var(--ink);}
+  .plan-row input{width:120px;}
+  .top-row{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;}
+  .loading{padding:60px 20px;text-align:center;color:var(--muted);}
+  .footnote{font-size:12px;color:var(--muted);margin-top:-6px;margin-bottom:20px;}
+</style>
+</head>
+<body>
+<header>
+  <div class="header-inner">
+    <div class="brand">
+      <div>
+        <h1>Bütçe Defteri</h1>
+        <div class="sub">Emre &amp; İrem &middot; ortak hane bütçesi</div>
+      </div>
+      <nav class="tabs">
+        <button class="tab-btn" data-tab="entry">Kayıt</button>
+        <button class="tab-btn" data-tab="dashboard">Panel</button>
+      </nav>
+    </div>
+    <div class="io-row">
+      <button class="io-btn" id="exportBtn" type="button">⭳ Dışa Aktar</button>
+      <button class="io-btn" id="importBtn" type="button">⭱ İçe Aktar</button>
+      <input type="file" id="importFileInput" accept="application/json" style="display:none">
+      <span id="importStatus" class="import-status"></span>
+    </div>
+  </div>
+</header>
+<main>
+  <div class="wrap" id="app">
+    <div class="loading">Yükleniyor…</div>
+  </div>
+</main>
+<script>
+(function(){
+  var pendingImportData = null;
+  var TR_MONTHS = ["Ocak","Şubat","Mart","Nisan","Mayıs","Haziran","Temmuz","Ağustos","Eylül","Ekim","Kasım","Aralık"];
+
+  var DEFAULT_CONFIG = {
+    categories:[
+      {name:"Ev kirası", planned:33000},
+      {name:"Kreş", planned:32000},
+      {name:"Market", planned:15000},
+      {name:"Genel Alışveriş", planned:7500},
+      {name:"Araba kredisi", planned:20000},
+      {name:"Ofis Kirası", planned:20000},
+      {name:"Dışarıda Yemek", planned:10000},
+      {name:"İrem Vergi", planned:8000},
+      {name:"Ofis Sigorta", planned:10000},
+      {name:"Giyim", planned:10000},
+      {name:"Kredi Kartı Kredisi", planned:7000},
+      {name:"Fatura", planned:7000},
+      {name:"Hediye", planned:5000},
+      {name:"Ofis Stopaj", planned:6000},
+      {name:"Ofis Aidatı", planned:5000},
+      {name:"Taşıt Yakıt", planned:7000},
+      {name:"Ev aidatı", planned:3600},
+      {name:"Taşıt Genel Gider", planned:3000},
+      {name:"Eczane", planned:1000},
+      {name:"Sigara", planned:2000},
+      {name:"Ofis Genel Gider", planned:5000},
+      {name:"Kırtasiye", planned:0},
+      {name:"Dijital Üyelikler", planned:1000},
+      {name:"LG TV Taksit", planned:4500},
+      {name:"Jimnastik", planned:4000}
+    ],
+    incomeCategories:["Emre Maaş","İrem Allianz","İrem Ofis","Emre Ek Gelir"]
+  };
+
+  // İlk açılışta, henüz hiç gider kaydı yoksa Ağustos 2026 Excel'inden aktarılan gerçek harcamalarla başlar.
+  var SEED_EXPENSES = [{"id": "seed_e_001", "date": "2026-08-02", "amount": 33000, "category": "Ev kirası", "description": "Kira"}, {"id": "seed_e_002", "date": "2026-08-02", "amount": 3600, "category": "Ev aidatı", "description": "Aidat"}, {"id": "seed_e_003", "date": "2026-08-03", "amount": 20000, "category": "Araba kredisi", "description": "Araba Kredisi"}, {"id": "seed_e_004", "date": "2026-08-03", "amount": 7000, "category": "Kredi Kartı Kredisi", "description": "KK Kredisi"}, {"id": "seed_e_005", "date": "2026-08-03", "amount": 32000, "category": "Kreş", "description": "Kreş"}, {"id": "seed_e_006", "date": "2026-08-20", "amount": 20000, "category": "Ofis Kirası", "description": "Ofis Kira"}, {"id": "seed_e_007", "date": "2026-08-20", "amount": 5000, "category": "Ofis Aidatı", "description": "Ofis Aidat"}, {"id": "seed_e_008", "date": "2026-08-20", "amount": 5466, "category": "Ofis Stopaj", "description": "Ofis Stopaj"}, {"id": "seed_e_009", "date": "2026-08-20", "amount": 10000, "category": "Ofis Sigorta", "description": "Ofis Sigorta"}, {"id": "seed_e_010", "date": "2026-08-21", "amount": 200, "category": "Fatura", "description": "Kıvanç Turkcell"}, {"id": "seed_e_011", "date": "2026-08-21", "amount": 405, "category": "Giyim", "description": "Emre Mayo"}, {"id": "seed_e_012", "date": "2026-08-21", "amount": 275, "category": "Dışarıda Yemek", "description": "Sufleli Dondurma"}, {"id": "seed_e_013", "date": "2026-08-20", "amount": 285, "category": "Dışarıda Yemek", "description": "Künefe"}, {"id": "seed_e_014", "date": "2026-08-18", "amount": 480, "category": "Sigara", "description": "Market"}, {"id": "seed_e_015", "date": "2026-08-16", "amount": 516, "category": "Market", "description": "Market"}, {"id": "seed_e_016", "date": "2026-08-15", "amount": 515, "category": "Market", "description": "Market"}, {"id": "seed_e_017", "date": "2026-08-14", "amount": 750, "category": "Dışarıda Yemek", "description": "Sülale Pide"}, {"id": "seed_e_018", "date": "2026-08-14", "amount": 675, "category": "Dışarıda Yemek", "description": "Profiterol"}, {"id": "seed_e_019", "date": "2026-08-14", "amount": 750, "category": "Market", "description": "Sucuk"}, {"id": "seed_e_020", "date": "2026-08-13", "amount": 645, "category": "Dışarıda Yemek", "description": "Kahve"}, {"id": "seed_e_021", "date": "2026-08-11", "amount": 355, "category": "Dışarıda Yemek", "description": "Matador"}, {"id": "seed_e_022", "date": "2026-08-10", "amount": 830, "category": "Dışarıda Yemek", "description": "Daffy Dark"}, {"id": "seed_e_023", "date": "2026-08-10", "amount": 600, "category": "Sigara", "description": "Sigara"}, {"id": "seed_e_024", "date": "2026-08-09", "amount": 2500, "category": "Taşıt Yakıt", "description": "Benzin"}, {"id": "seed_e_025", "date": "2026-08-08", "amount": 425, "category": "Genel Alışveriş", "description": "Genel Oyuncak"}, {"id": "seed_e_026", "date": "2026-08-08", "amount": 800, "category": "Dışarıda Yemek", "description": "Ecrin Pasta"}, {"id": "seed_e_027", "date": "2026-08-08", "amount": 1000, "category": "Hediye", "description": "Ecrin Hediye"}, {"id": "seed_e_028", "date": "2026-08-08", "amount": 530, "category": "Dışarıda Yemek", "description": "Mayalı"}, {"id": "seed_e_029", "date": "2026-08-07", "amount": 570, "category": "Dışarıda Yemek", "description": "Matador"}, {"id": "seed_e_030", "date": "2026-08-06", "amount": 6665, "category": "Genel Alışveriş", "description": "Motorun Son Taksidi"}, {"id": "seed_e_031", "date": "2026-08-05", "amount": 320, "category": "Sigara", "description": "Sigara"}, {"id": "seed_e_032", "date": "2026-08-05", "amount": 385, "category": "Dışarıda Yemek", "description": "Kahve"}, {"id": "seed_e_033", "date": "2026-08-04", "amount": 550, "category": "Dışarıda Yemek", "description": "Yemek"}, {"id": "seed_e_034", "date": "2026-08-03", "amount": 2500, "category": "Taşıt Yakıt", "description": "Benzin"}, {"id": "seed_e_035", "date": "2026-08-03", "amount": 300, "category": "Genel Alışveriş", "description": "Hotel"}, {"id": "seed_e_036", "date": "2026-08-02", "amount": 258, "category": "Market", "description": "Market"}, {"id": "seed_e_037", "date": "2026-08-02", "amount": 1470, "category": "Dışarıda Yemek", "description": "Yemek Tatil"}, {"id": "seed_e_038", "date": "2026-08-02", "amount": 760, "category": "Dışarıda Yemek", "description": "Yemek Tatil"}, {"id": "seed_e_039", "date": "2026-08-02", "amount": 300, "category": "Dışarıda Yemek", "description": "Pastane Tatil"}, {"id": "seed_e_040", "date": "2026-08-02", "amount": 2080, "category": "Dışarıda Yemek", "description": "Yemek Tatil"}, {"id": "seed_e_041", "date": "2026-08-01", "amount": 2750, "category": "Dışarıda Yemek", "description": "Yemek Tatil"}, {"id": "seed_e_042", "date": "2026-08-08", "amount": 450, "category": "Genel Alışveriş", "description": "Oyuncak"}, {"id": "seed_e_043", "date": "2026-08-06", "amount": 3150, "category": "Giyim", "description": "İrem Haşema"}, {"id": "seed_e_044", "date": "2026-08-06", "amount": 2200, "category": "Market", "description": "File"}, {"id": "seed_e_045", "date": "2026-08-06", "amount": 1225, "category": "İrem Vergi", "description": "Çevre Vergisi"}, {"id": "seed_e_046", "date": "2026-08-06", "amount": 800, "category": "Market", "description": "Market"}, {"id": "seed_e_047", "date": "2026-08-05", "amount": 140, "category": "Dışarıda Yemek", "description": "Matador"}, {"id": "seed_e_048", "date": "2026-08-04", "amount": 1100, "category": "Genel Alışveriş", "description": "Sinema"}, {"id": "seed_e_049", "date": "2026-08-04", "amount": 578, "category": "Fatura", "description": "Emre Telefon"}, {"id": "seed_e_050", "date": "2026-08-03", "amount": 300, "category": "Taşıt Genel Gider", "description": "Otopark İztuzu"}, {"id": "seed_e_051", "date": "2026-08-05", "amount": 754, "category": "Fatura", "description": "Su Fatura Ev"}, {"id": "seed_e_052", "date": "2026-08-04", "amount": 300, "category": "Market", "description": "Sigara"}, {"id": "seed_e_053", "date": "2026-08-13", "amount": 1005, "category": "Market", "description": "Market"}, {"id": "seed_e_054", "date": "2026-08-12", "amount": 1700, "category": "Market", "description": "Market"}, {"id": "seed_e_055", "date": "2026-08-11", "amount": 3331, "category": "İrem Vergi", "description": "KDV"}, {"id": "seed_e_056", "date": "2026-08-11", "amount": 1085, "category": "İrem Vergi", "description": "3 Aylık vergi"}, {"id": "seed_e_057", "date": "2026-08-12", "amount": 2879, "category": "Market", "description": "File"}, {"id": "seed_e_058", "date": "2026-08-13", "amount": 5944, "category": "Genel Alışveriş", "description": "Klima"}, {"id": "seed_e_059", "date": "2026-08-20", "amount": 4725, "category": "Genel Alışveriş", "description": "Aquapark"}, {"id": "seed_e_060", "date": "2026-08-30", "amount": 2800, "category": "Taşıt Genel Gider", "description": "Egea Lastik 2. Taksit"}, {"id": "seed_e_061", "date": "2026-08-08", "amount": 269, "category": "Genel Alışveriş", "description": "Oyuncak"}, {"id": "seed_e_062", "date": "2026-08-08", "amount": 380, "category": "Dışarıda Yemek", "description": "Mayalı"}, {"id": "seed_e_063", "date": "2026-08-09", "amount": 1595, "category": "Market", "description": "Market"}, {"id": "seed_e_064", "date": "2026-08-09", "amount": 525, "category": "Sigara", "description": "Sigara"}, {"id": "seed_e_065", "date": "2026-08-09", "amount": 295, "category": "Dışarıda Yemek", "description": "Mayalı"}, {"id": "seed_e_066", "date": "2026-08-10", "amount": 1800, "category": "Eczane", "description": "Eczane"}, {"id": "seed_e_067", "date": "2026-08-14", "amount": 366, "category": "Market", "description": "Market"}, {"id": "seed_e_068", "date": "2026-08-17", "amount": 737, "category": "Eczane", "description": "Eczane"}, {"id": "seed_e_069", "date": "2026-08-17", "amount": 25, "category": "Dışarıda Yemek", "description": "Burçak"}, {"id": "seed_e_070", "date": "2026-08-19", "amount": 350, "category": "Eczane", "description": "Eczane"}, {"id": "seed_e_071", "date": "2026-08-20", "amount": 742, "category": "Market", "description": "File"}, {"id": "seed_e_072", "date": "2026-08-21", "amount": 1200, "category": "Hediye", "description": "Karaca Erinöz"}, {"id": "seed_e_073", "date": "2026-08-22", "amount": 525, "category": "Hediye", "description": "LCW"}, {"id": "seed_e_074", "date": "2026-08-22", "amount": 490, "category": "Sigara", "description": "Sigara"}, {"id": "seed_e_075", "date": "2026-08-22", "amount": 220, "category": "Dışarıda Yemek", "description": "Matador"}, {"id": "seed_e_076", "date": "2026-08-22", "amount": 615, "category": "Dışarıda Yemek", "description": "Mayalı"}, {"id": "seed_e_077", "date": "2026-08-06", "amount": 1450, "category": "Giyim", "description": "İrem Giyim"}, {"id": "seed_e_078", "date": "2026-08-06", "amount": 610, "category": "Giyim", "description": "İrem Giyim"}, {"id": "seed_e_079", "date": "2026-08-06", "amount": 271, "category": "Kırtasiye", "description": "Kırtasiye"}, {"id": "seed_e_080", "date": "2026-08-06", "amount": 210, "category": "Ofis Genel Gider", "description": "Ofis Su"}, {"id": "seed_e_081", "date": "2026-08-08", "amount": 1100, "category": "Market", "description": "Bal"}, {"id": "seed_e_082", "date": "2026-08-11", "amount": 215, "category": "Genel Alışveriş", "description": "Ecrin Tren Bİleti"}, {"id": "seed_e_083", "date": "2026-08-11", "amount": 675, "category": "Market", "description": "Market"}, {"id": "seed_e_084", "date": "2026-08-14", "amount": 553, "category": "Market", "description": "Market"}, {"id": "seed_e_085", "date": "2026-08-17", "amount": 480, "category": "Giyim", "description": "Emre Giyim boxer"}, {"id": "seed_e_086", "date": "2026-08-17", "amount": 656, "category": "Market", "description": "Market"}, {"id": "seed_e_087", "date": "2026-08-17", "amount": 390, "category": "Market", "description": "Market"}, {"id": "seed_e_088", "date": "2026-08-20", "amount": 411, "category": "Giyim", "description": "İrem Giyim"}, {"id": "seed_e_089", "date": "2026-08-19", "amount": 436, "category": "Kırtasiye", "description": "Kırtasiye"}, {"id": "seed_e_090", "date": "2026-08-18", "amount": 967, "category": "Market", "description": "Migros"}, {"id": "seed_e_091", "date": "2026-08-19", "amount": 303, "category": "Market", "description": "Migros"}, {"id": "seed_e_092", "date": "2026-08-20", "amount": 230, "category": "Dijital Üyelikler", "description": "TV Plus"}, {"id": "seed_e_093", "date": "2026-08-21", "amount": 1055, "category": "Market", "description": "Migros"}, {"id": "seed_e_094", "date": "2026-08-22", "amount": 579, "category": "Fatura", "description": "Kablo TV"}, {"id": "seed_e_095", "date": "2026-08-15", "amount": 3500, "category": "Genel Alışveriş", "description": "Ev Temizliği"}, {"id": "seed_e_096", "date": "2026-08-22", "amount": 500, "category": "Hediye", "description": "Zeki Abi Takı"}, {"id": "seed_e_097", "date": "2026-08-15", "amount": 1000, "category": "Hediye", "description": "Hamit Acar Takı"}, {"id": "seed_e_098", "date": "2026-08-21", "amount": 222, "category": "Ofis Genel Gider", "description": "Ofis Elektrik"}, {"id": "seed_e_099", "date": "2026-08-21", "amount": 387, "category": "Ofis Genel Gider", "description": "Ofis Su"}, {"id": "seed_e_100", "date": "2026-08-21", "amount": 629, "category": "Fatura", "description": "İrem Telefon"}, {"id": "seed_e_101", "date": "2026-08-21", "amount": 572, "category": "Ofis Genel Gider", "description": "Ofis İnternet"}, {"id": "seed_e_102", "date": "2026-08-24", "amount": 1090, "category": "Ofis Genel Gider", "description": "Ofis Klima"}, {"id": "seed_e_103", "date": "2026-08-24", "amount": 2000, "category": "Ofis Genel Gider", "description": "Ofis Muhasebe"}, {"id": "seed_e_104", "date": "2026-08-26", "amount": 296, "category": "Giyim", "description": "İrem Giyim"}, {"id": "seed_e_105", "date": "2026-08-27", "amount": 70, "category": "Dijital Üyelikler", "description": "İrem Trendyol Abonelik"}, {"id": "seed_e_106", "date": "2026-08-30", "amount": 400, "category": "Dijital Üyelikler", "description": "İrem icloud abonelik"}, {"id": "seed_e_107", "date": "2026-08-23", "amount": 300, "category": "Dışarıda Yemek", "description": "kahve"}, {"id": "seed_e_108", "date": "2026-08-24", "amount": 1032, "category": "Market", "description": "Market"}, {"id": "seed_e_109", "date": "2026-08-27", "amount": 305, "category": "Dışarıda Yemek", "description": "simit dünyası"}, {"id": "seed_e_110", "date": "2026-08-27", "amount": 240, "category": "Sigara", "description": "Sigara"}, {"id": "seed_e_111", "date": "2026-08-28", "amount": 290, "category": "Dışarıda Yemek", "description": "Dondurma"}, {"id": "seed_e_112", "date": "2026-08-29", "amount": 432, "category": "Market", "description": "Market"}, {"id": "seed_e_113", "date": "2026-08-29", "amount": 1500, "category": "Hediye", "description": "Aslan Hediye Kıvanç Giyim"}, {"id": "seed_e_114", "date": "2026-08-29", "amount": 250, "category": "Giyim", "description": "Kıvanç Giyim"}, {"id": "seed_e_115", "date": "2026-08-29", "amount": 80, "category": "Dışarıda Yemek", "description": "Burçak"}, {"id": "seed_e_116", "date": "2026-08-29", "amount": 180, "category": "Dışarıda Yemek", "description": "Burçak"}, {"id": "seed_e_117", "date": "2026-08-29", "amount": 335, "category": "Hediye", "description": "Dondurma İkramlık"}, {"id": "seed_e_118", "date": "2026-08-25", "amount": 1470, "category": "Fatura", "description": "Ev Elektrik"}, {"id": "seed_e_119", "date": "2026-08-28", "amount": 190, "category": "Fatura", "description": "Ev doğalgaz"}, {"id": "seed_e_120", "date": "2026-08-30", "amount": 880, "category": "Market", "description": "market"}, {"id": "seed_e_121", "date": "2026-08-30", "amount": 450, "category": "Dışarıda Yemek", "description": "Momo Pizza"}, {"id": "seed_e_122", "date": "2026-08-23", "amount": 260, "category": "Dışarıda Yemek", "description": "Matador"}, {"id": "seed_e_123", "date": "2026-08-25", "amount": 175, "category": "Dışarıda Yemek", "description": "Kahve"}, {"id": "seed_e_124", "date": "2026-08-26", "amount": 2091, "category": "Market", "description": "market"}, {"id": "seed_e_125", "date": "2026-08-30", "amount": 6057, "category": "İrem Vergi", "description": "KDV"}];
+
+  var state = {
+    config: null,
+    expenses: [],
+    incomes: [],
+    loading: true,
+    storageOk: true,
+    storageAvailable: true,
+    loadFailed: false,
+    storageWarning: '',
+    activeTab: 'entry',
+    dashboardMonth: null,
+    editingPlan: false,
+    errors: {}
+  };
+
+  var app = document.getElementById('app');
+
+  function escapeHtml(s){
+    return String(s).replace(/[&<>"']/g, function(c){
+      return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];
+    });
+  }
+
+  function fmtTRY(n){
+    n = Math.round(n || 0);
+    var sign = n < 0 ? '-' : '';
+    var abs = Math.abs(n).toString();
+    var withDots = abs.replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+    return sign + '₺' + withDots;
+  }
+
+  function uid(prefix){
+    return prefix + '_' + Date.now().toString(36) + Math.random().toString(36).slice(2,7);
+  }
+
+  function monthKeyOf(dateStr){ return (dateStr || '').slice(0,7); }
+
+  function currentMonthKey(){
+    var d = new Date();
+    var m = (d.getMonth()+1).toString().padStart(2,'0');
+    return d.getFullYear() + '-' + m;
+  }
+
+  function todayStr(){
+    var d = new Date();
+    var m = (d.getMonth()+1).toString().padStart(2,'0');
+    var day = d.getDate().toString().padStart(2,'0');
+    return d.getFullYear() + '-' + m + '-' + day;
+  }
+
+  function monthLabel(key){
+    var parts = key.split('-');
+    var y = parts[0], m = parseInt(parts[1],10);
+    return TR_MONTHS[m-1] + ' ' + y;
+  }
+
+  function getAvailableMonths(){
+    var set = {};
+    set[currentMonthKey()] = true;
+    state.expenses.forEach(function(e){ set[monthKeyOf(e.date)] = true; });
+    state.incomes.forEach(function(i){ set[monthKeyOf(i.date)] = true; });
+    return Object.keys(set).sort().reverse();
+  }
+
+  function sum(arr){ return arr.reduce(function(a,b){ return a+b; }, 0); }
+
+  function computeSummary(monthKey){
+    var monthExpenses = state.expenses.filter(function(e){ return monthKeyOf(e.date) === monthKey; });
+    var monthIncomes = state.incomes.filter(function(i){ return monthKeyOf(i.date) === monthKey; });
+    var totalIncome = sum(monthIncomes.map(function(i){ return i.amount; }));
+    var totalExpense = sum(monthExpenses.map(function(e){ return e.amount; }));
+    var perCategory = state.config.categories.map(function(c){
+      var spent = sum(monthExpenses.filter(function(e){ return e.category === c.name; }).map(function(e){ return e.amount; }));
+      var pct = c.planned > 0 ? (spent / c.planned * 100) : (spent > 0 ? 100 : 0);
+      return {name:c.name, planned:c.planned, spent:spent, remaining:c.planned-spent, pct:pct};
+    });
+    return {totalIncome:totalIncome, totalExpense:totalExpense, perCategory:perCategory, savings: totalIncome-totalExpense};
+  }
+
+  // ---------- Google Sheets backend ----------
+  // Emre'nin Apps Script "Web app" dağıtımından aldığı URL buraya gelecek.
+  var API_URL = 'https://script.google.com/macros/s/AKfycbyzQlyovbKrzNjcyEkB-RwhAO9Ru7GRY1JNqsnUs4Y5kGh3dLrgQ_nOCY4yCsGidq4n/exec';
+
+  function hasApi(){ return !!API_URL; }
+
+  async function apiLoad(){
+    if(!hasApi()){ return {ok:false, reason:'Google Sheets bağlantısı henüz ayarlanmadı'}; }
+    try{
+      var res = await fetch(API_URL + '?action=load', {method:'GET'});
+      if(!res.ok){ return {ok:false, reason:'HTTP '+res.status}; }
+      var data = await res.json();
+      return {ok:true, data:data};
+    }catch(e){
+      return {ok:false, reason:(e && e.message) || 'ağ hatası'};
+    }
+  }
+
+  async function apiSave(payload){
+    if(!hasApi()){ return {ok:false, reason:'Google Sheets bağlantısı henüz ayarlanmadı'}; }
+    try{
+      // Content-Type kasıtlı olarak ayarlanmıyor: Apps Script Web App'ler CORS preflight
+      // (OPTIONS) isteklerini yanıtlamıyor, düz metin body preflight'ı tetiklemiyor.
+      var res = await fetch(API_URL, {method:'POST', body: JSON.stringify(payload)});
+      if(!res.ok){ return {ok:false, reason:'HTTP '+res.status}; }
+      var data = await res.json();
+      return {ok: !!(data && data.ok), reason: data && data.error};
+    }catch(e){
+      return {ok:false, reason:(e && e.message) || 'ağ hatası'};
+    }
+  }
+
+  async function persistAll(){
+    return apiSave({ config: state.config, expenses: state.expenses, incomes: state.incomes });
+  }
+
+  async function loadAll(){
+    if(!hasApi()){
+      state.config = DEFAULT_CONFIG;
+      state.expenses = [];
+      state.incomes = [];
+      state.storageAvailable = false;
+      state.loadFailed = false;
+      state.storageWarning = 'Google Sheets bağlantısı henüz ayarlanmadı. Şimdilik girdiğiniz kayıtlar yalnızca bu oturumda görünecek — "Dışa Aktar" ile yedek alabilirsiniz. Bağlantı hazır olduğunda bu uyarı kaybolacak.';
+      state.loading = false;
+      state.dashboardMonth = currentMonthKey();
+      render();
+      return;
+    }
+
+    var result = await apiLoad();
+    if(result.ok){
+      var d = result.data || {};
+      var cfgEmpty = !d.config || !d.config.categories || d.config.categories.length === 0;
+      var expEmpty = !d.expenses || d.expenses.length === 0;
+      state.config = cfgEmpty ? DEFAULT_CONFIG : d.config;
+      state.expenses = expEmpty ? SEED_EXPENSES.slice() : d.expenses;
+      state.incomes = d.incomes || [];
+      state.storageAvailable = true;
+      state.loadFailed = false;
+      state.storageWarning = '';
+      state.loading = false;
+      state.dashboardMonth = currentMonthKey();
+      render();
+      if(cfgEmpty || expEmpty){
+        // Sheet ilk kez kullanılıyor: başlangıç verisini geri yazıp Sheet'i kaynak haline getir.
+        persistAll();
+      }
+    } else {
+      state.config = DEFAULT_CONFIG;
+      state.expenses = [];
+      state.incomes = [];
+      state.storageAvailable = false;
+      state.loadFailed = true;
+      state.storageWarning = 'Google Sheets\'e bağlanılamadı (' + result.reason + '). İnterneti kontrol edip "Tekrar Dene"yi kullanın.';
+      state.loading = false;
+      state.dashboardMonth = currentMonthKey();
+      render();
+    }
+  }
+
+  function applyPersistResult(result){
+    if(result.ok){
+      state.storageAvailable = true;
+      state.storageWarning = '';
+    } else {
+      state.storageAvailable = false;
+      state.storageWarning = 'Son değişiklik Google Sheets\'e kaydedilemedi (' + result.reason + '). Kayıt bu oturumda görünmeye devam ediyor ama sayfa yenilenirse kaybolabilir. "Tekrar Dene"yi kullanın veya "Dışa Aktar" ile yedek alın.';
+    }
+  }
+
+  // ---------- export / import (yedek / kurtarma amaçlı) ----------
+  function showImportStatus(html){
+    var el = document.getElementById('importStatus');
+    if(el){ el.innerHTML = html; }
+  }
+
+  function exportData(){
+    var payload = { exportedAt: new Date().toISOString(), config: state.config, expenses: state.expenses, incomes: state.incomes };
+    var blob = new Blob([JSON.stringify(payload, null, 2)], {type:'application/json'});
+    var url = URL.createObjectURL(blob);
+    var a = document.createElement('a');
+    a.href = url;
+    a.download = 'butce-defteri-yedek-' + todayStr() + '.json';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    setTimeout(function(){ URL.revokeObjectURL(url); }, 1500);
+    showImportStatus('<span style="color:var(--good);">Yedek dosyası indirildi.</span>');
+  }
+
+  function handleImportFile(file){
+    var reader = new FileReader();
+    reader.onload = function(ev){
+      try{
+        var data = JSON.parse(ev.target.result);
+        if(!data || !Array.isArray(data.expenses) || !Array.isArray(data.incomes) || !data.config || !Array.isArray(data.config.categories)){
+          throw new Error('Dosya formatı tanınmadı.');
+        }
+        pendingImportData = data;
+        showImportStatus(
+          (data.expenses.length + ' gider, ' + data.incomes.length + ' gelir kaydı bulundu. Onaylarsanız ekrandaki mevcut verilerin üzerine yazılacak.')
+          + ' <button id="confirmImportBtn" type="button">Onayla</button>'
+          + ' <button id="cancelImportBtn" type="button">Vazgeç</button>'
+        );
+        var confirmBtn = document.getElementById('confirmImportBtn');
+        var cancelBtn = document.getElementById('cancelImportBtn');
+        if(confirmBtn){
+          confirmBtn.onclick = async function(){
+            state.config = pendingImportData.config;
+            state.expenses = pendingImportData.expenses;
+            state.incomes = pendingImportData.incomes;
+            state.dashboardMonth = currentMonthKey();
+            pendingImportData = null;
+            showImportStatus('<span style="color:var(--good);">İçe aktarma tamamlandı.</span>');
+            render();
+            var result = await persistAll();
+            applyPersistResult(result);
+            render();
+          };
+        }
+        if(cancelBtn){
+          cancelBtn.onclick = function(){ pendingImportData = null; showImportStatus(''); };
+        }
+      }catch(e){
+        showImportStatus('<span style="color:var(--warn);">Dosya okunamadı: '+escapeHtml((e && e.message) || String(e))+'</span>');
+      }
+    };
+    reader.onerror = function(){
+      showImportStatus('<span style="color:var(--warn);">Dosya okunamadı.</span>');
+    };
+    reader.readAsText(file);
+  }
+
+  function bindStaticControls(){
+    var exportBtn = document.getElementById('exportBtn');
+    if(exportBtn){ exportBtn.onclick = exportData; }
+    var importBtn = document.getElementById('importBtn');
+    var importInput = document.getElementById('importFileInput');
+    if(importBtn && importInput){
+      importBtn.onclick = function(){ importInput.click(); };
+      importInput.onchange = function(){
+        if(importInput.files && importInput.files[0]){
+          handleImportFile(importInput.files[0]);
+        }
+        importInput.value = '';
+      };
+    }
+  }
+
+  // ---------- actions ----------
+  async function addExpense(date, amount, category, description){
+    var entry = {id:uid('e'), date:date, amount:amount, category:category, description:description||''};
+    state.expenses.unshift(entry);
+    state.errors.expense = '';
+    render();
+    var result = await persistAll();
+    applyPersistResult(result);
+    render();
+  }
+
+  async function addIncome(date, amount, description, category){
+    var entry = {id:uid('i'), date:date, amount:amount, description:description, category:category};
+    state.incomes.unshift(entry);
+    state.errors.income = '';
+    render();
+    var result = await persistAll();
+    applyPersistResult(result);
+    render();
+  }
+
+  async function deleteExpense(id){
+    state.expenses = state.expenses.filter(function(x){ return x.id !== id; });
+    render();
+    var result = await persistAll();
+    applyPersistResult(result);
+    render();
+  }
+
+  async function deleteIncome(id){
+    state.incomes = state.incomes.filter(function(x){ return x.id !== id; });
+    render();
+    var result = await persistAll();
+    applyPersistResult(result);
+    render();
+  }
+
+  async function savePlan(newPlanned){
+    state.config.categories = state.config.categories.map(function(c, idx){
+      return {name:c.name, planned: newPlanned[idx]};
+    });
+    state.editingPlan = false;
+    render();
+    var result = await persistAll();
+    applyPersistResult(result);
+    render();
+  }
+
+  // ---------- render ----------
+  function render(){
+    if(state.loading){
+      app.innerHTML = '<div class="loading">Yükleniyor…</div>';
+      return;
+    }
+    document.querySelectorAll('.tab-btn').forEach(function(b){
+      b.classList.toggle('active', b.getAttribute('data-tab') === state.activeTab);
+    });
+    var banner = state.storageWarning
+      ? (hasApi()
+          ? '<div class="warn-banner" style="display:flex;justify-content:space-between;align-items:center;gap:12px;">'
+            + '<span>⚠ ' + escapeHtml(state.storageWarning) + '</span>'
+            + '<button class="plan-toggle" id="retryStorage" style="white-space:nowrap;">Tekrar Dene</button>'
+            + '</div>'
+          : '<div class="warn-banner">⚠ ' + escapeHtml(state.storageWarning) + '</div>')
+      : '';
+    if(state.activeTab === 'entry'){
+      app.innerHTML = banner + renderEntryTab();
+    } else {
+      app.innerHTML = banner + renderDashboardTab();
+    }
+    bindEvents();
+  }
+
+  function renderEntryTab(){
+    var expCatOptions = state.config.categories.map(function(c){
+      return '<option value="'+escapeHtml(c.name)+'">'+escapeHtml(c.name)+'</option>';
+    }).join('');
+    var incCatOptions = state.config.incomeCategories.map(function(c){
+      return '<option value="'+escapeHtml(c)+'">'+escapeHtml(c)+'</option>';
+    }).join('');
+
+    var expenseEntries = state.expenses.slice().sort(function(a,b){ return b.date.localeCompare(a.date); }).slice(0, 60);
+    var incomeEntries = state.incomes.slice().sort(function(a,b){ return b.date.localeCompare(a.date); });
+
+    function renderEntryRow(item, type){
+      var label = item.category + (item.description ? ' — '+item.description : '');
+      return '<div class="entry-row">'
+        + '<span class="entry-tag '+(type==='exp'?'exp':'inc')+'">'+(type==='exp'?'Gider':'Gelir')+'</span>'
+        + '<span class="entry-date">'+escapeHtml(item.date)+'</span>'
+        + '<span class="entry-cat">'+escapeHtml(label)+'</span>'
+        + '<span class="entry-amt">'+fmtTRY(item.amount)+'</span>'
+        + '<button class="del-btn" data-del="'+type+'" data-id="'+escapeHtml(item.id)+'" title="Sil" aria-label="Kaydı sil">✕</button>'
+        + '</div>';
+    }
+
+    var incomeListHtml = incomeEntries.length
+      ? incomeEntries.map(function(i){ return renderEntryRow(i, 'inc'); }).join('')
+      : '<div class="empty-state">Henüz gelir kaydı yok.</div>';
+
+    var expTruncNote = state.expenses.length > expenseEntries.length
+      ? ' <span style="color:var(--muted);font-weight:400;">(son '+expenseEntries.length+' / toplam '+state.expenses.length+')</span>'
+      : '';
+    var expenseListHtml = expenseEntries.length
+      ? expenseEntries.map(function(e){ return renderEntryRow(e, 'exp'); }).join('')
+      : '<div class="empty-state">Henüz gider kaydı yok.</div>';
+
+    return ''
+      + '<div class="grid2">'
+      +   '<div class="card">'
+      +     '<h2>Gider Ekle</h2>'
+      +     '<form id="expenseForm">'
+      +       '<label for="expDate">Tarih</label>'
+      +       '<input type="date" id="expDate" required value="'+todayStr()+'">'
+      +       '<label for="expAmount">Tutar (₺)</label>'
+      +       '<input type="number" id="expAmount" class="num-input" min="0" step="1" placeholder="0" required>'
+      +       '<label for="expDesc">Açıklama (opsiyonel)</label>'
+      +       '<input type="text" id="expDesc" placeholder="ör. Market">'
+      +       '<label for="expCategory">Kategori</label>'
+      +       '<select id="expCategory" required>'+expCatOptions+'</select>'
+      +       '<button type="submit" class="submit-btn">Gideri Kaydet</button>'
+      +       '<div class="field-error">'+(state.errors.expense||'')+'</div>'
+      +     '</form>'
+      +   '</div>'
+      +   '<div class="card">'
+      +     '<h2>Gelir Ekle</h2>'
+      +     '<form id="incomeForm">'
+      +       '<label for="incDate">Tarih</label>'
+      +       '<input type="date" id="incDate" required value="'+todayStr()+'">'
+      +       '<label for="incAmount">Tutar (₺)</label>'
+      +       '<input type="number" id="incAmount" class="num-input" min="0" step="1" placeholder="0" required>'
+      +       '<label for="incDesc">Açıklama (opsiyonel)</label>'
+      +       '<input type="text" id="incDesc" placeholder="ör. Maaş">'
+      +       '<label for="incCategory">Gelir Kategorisi</label>'
+      +       '<select id="incCategory" required>'+incCatOptions+'</select>'
+      +       '<button type="submit" class="submit-btn">Geliri Kaydet</button>'
+      +       '<div class="field-error">'+(state.errors.income||'')+'</div>'
+      +     '</form>'
+      +   '</div>'
+      + '</div>'
+      + '<div class="card">'
+      +   '<div class="list-title">Son Gelirler</div>'
+      +   incomeListHtml
+      + '</div>'
+      + '<div class="card">'
+      +   '<div class="list-title">Son Giderler'+expTruncNote+'</div>'
+      +   expenseListHtml
+      + '</div>';
+  }
+
+  function renderDashboardTab(){
+    var months = getAvailableMonths();
+    if(months.indexOf(state.dashboardMonth) === -1){ months.unshift(state.dashboardMonth); }
+    var monthOptions = months.map(function(m){
+      return '<option value="'+m+'"'+(m===state.dashboardMonth?' selected':'')+'>'+monthLabel(m)+'</option>';
+    }).join('');
+
+    var s = computeSummary(state.dashboardMonth);
+    var savingsClass = s.savings >= 0 ? 'pos' : 'neg';
+
+    var overCats = s.perCategory.filter(function(c){ return c.spent > c.planned; });
+    var warnBanner = overCats.length
+      ? '<div class="warn-banner">⚠ Bütçe aşıldı: '+overCats.map(function(c){return escapeHtml(c.name);}).join(', ')+'. '+(overCats.length===1?'Bu kalemde':'Bu kalemlerde')+' ay sonuna kadar harcamayı sınırlamanız önerilir.</div>'
+      : '';
+
+    var catRows = s.perCategory.map(function(c){
+      var barClass = c.pct >= 100 ? 'over' : (c.pct >= 85 ? 'amber' : '');
+      var figClass = c.spent > c.planned ? 'over' : 'under';
+      return '<div class="cat-row">'
+        + '<div class="cat-head">'
+        +   '<span class="cat-name">'+escapeHtml(c.name)+'</span>'
+        +   '<span class="cat-leader"></span>'
+        +   '<span class="cat-figures"><span class="spent '+figClass+'">'+fmtTRY(c.spent)+'</span> / '+fmtTRY(c.planned)+'</span>'
+        + '</div>'
+        + '<div class="bar-track"><div class="bar-fill '+barClass+'" style="width:'+Math.min(100, c.pct)+'%"></div></div>'
+        + '</div>';
+    }).join('');
+
+    var planSection = state.editingPlan ? renderPlanEditor() : '';
+
+    return ''
+      + '<div class="month-select-wrap">'
+      +   '<label for="monthSelect">Ay</label>'
+      +   '<select id="monthSelect">'+monthOptions+'</select>'
+      + '</div>'
+      + '<div class="summary-cards">'
+      +   '<div class="stat income"><div class="k">Toplam Gelir</div><div class="v num">'+fmtTRY(s.totalIncome)+'</div></div>'
+      +   '<div class="stat expense"><div class="k">Toplam Gider</div><div class="v num">'+fmtTRY(s.totalExpense)+'</div></div>'
+      +   '<div class="stat savings"><div class="k">Birikim (Kalan)</div><div class="v num '+savingsClass+'">'+fmtTRY(s.savings)+'</div></div>'
+      + '</div>'
+      + warnBanner
+      + '<div class="card">'
+      +   '<div class="top-row">'
+      +     '<h2>Kalem Kalem Bütçe — '+monthLabel(state.dashboardMonth)+'</h2>'
+      +     '<button class="plan-toggle" id="togglePlanEdit">'+(state.editingPlan ? 'Vazgeç' : 'Planı Düzenle')+'</button>'
+      +   '</div>'
+      +   planSection
+      +   (state.editingPlan ? '' : catRows)
+      + '</div>';
+  }
+
+  function renderPlanEditor(){
+    var rows = state.config.categories.map(function(c, idx){
+      return '<div class="plan-row"><label for="plan_'+idx+'">'+escapeHtml(c.name)+'</label>'
+        + '<input type="number" min="0" step="1" class="num-input" id="plan_'+idx+'" value="'+c.planned+'"></div>';
+    }).join('');
+    return '<form id="planForm">' + rows + '<button type="submit" class="submit-btn">Planı Kaydet</button></form>';
+  }
+
+  // ---------- events ----------
+  function bindEvents(){
+    var retryBtn = document.getElementById('retryStorage');
+    if(retryBtn){
+      retryBtn.onclick = async function(){
+        retryBtn.textContent = 'Deneniyor…';
+        if(state.loadFailed){
+          state.loading = true;
+          render();
+          await loadAll();
+        } else {
+          var result = await persistAll();
+          applyPersistResult(result);
+          render();
+        }
+      };
+    }
+
+    document.querySelectorAll('.tab-btn').forEach(function(btn){
+      btn.onclick = function(){
+        state.activeTab = btn.getAttribute('data-tab');
+        state.errors = {};
+        render();
+      };
+    });
+
+    var expForm = document.getElementById('expenseForm');
+    if(expForm){
+      expForm.onsubmit = function(ev){
+        ev.preventDefault();
+        state.errors.expense = '';
+        var date = document.getElementById('expDate').value;
+        var amount = parseFloat(document.getElementById('expAmount').value);
+        var desc = document.getElementById('expDesc').value.trim();
+        var category = document.getElementById('expCategory').value;
+        if(!date || !amount || amount <= 0 || !category){
+          state.errors.expense = 'Lütfen tarih, geçerli bir tutar ve kategori girin.';
+          render();
+          return;
+        }
+        addExpense(date, amount, category, desc);
+      };
+    }
+
+    var incForm = document.getElementById('incomeForm');
+    if(incForm){
+      incForm.onsubmit = function(ev){
+        ev.preventDefault();
+        state.errors.income = '';
+        var date = document.getElementById('incDate').value;
+        var amount = parseFloat(document.getElementById('incAmount').value);
+        var desc = document.getElementById('incDesc').value.trim();
+        var category = document.getElementById('incCategory').value;
+        if(!date || !amount || amount <= 0 || !category){
+          state.errors.income = 'Lütfen tarih, geçerli bir tutar ve kategori girin.';
+          render();
+          return;
+        }
+        addIncome(date, amount, desc, category);
+      };
+    }
+
+    document.querySelectorAll('[data-del]').forEach(function(btn){
+      btn.onclick = function(){
+        var type = btn.getAttribute('data-del');
+        var id = btn.getAttribute('data-id');
+        if(type === 'exp'){ deleteExpense(id); } else { deleteIncome(id); }
+      };
+    });
+
+    var monthSelect = document.getElementById('monthSelect');
+    if(monthSelect){
+      monthSelect.onchange = function(){
+        state.dashboardMonth = monthSelect.value;
+        render();
+      };
+    }
+
+    var toggleBtn = document.getElementById('togglePlanEdit');
+    if(toggleBtn){
+      toggleBtn.onclick = function(){
+        state.editingPlan = !state.editingPlan;
+        render();
+      };
+    }
+
+    var planForm = document.getElementById('planForm');
+    if(planForm){
+      planForm.onsubmit = function(ev){
+        ev.preventDefault();
+        var newPlanned = state.config.categories.map(function(c, idx){
+          var v = parseFloat(document.getElementById('plan_'+idx).value);
+          return isNaN(v) || v < 0 ? c.planned : v;
+        });
+        savePlan(newPlanned);
+      };
+    }
+  }
+
+  bindStaticControls();
+  loadAll();
+})();
+</script>
+</body>
+</html>
