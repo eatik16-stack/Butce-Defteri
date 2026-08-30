@@ -123,7 +123,7 @@
     font-weight:600;
     margin:0 0 16px;
   }
-  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:22px;}
+  .grid2{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:22px;}
   @media (max-width:680px){ .grid2{grid-template-columns:1fr;} }
   label{
     display:block;font-size:12px;font-weight:600;color:var(--muted);
@@ -172,6 +172,7 @@
   }
   .entry-tag.exp{background:var(--warn-bg);color:var(--warn);}
   .entry-tag.inc{background:var(--good-bg);color:var(--good);}
+  .entry-tag.sav{background:#E3E9F5;color:#3557A0;}
   .entry-date{color:var(--muted);font-family:'IBM Plex Mono';font-size:12.5px;white-space:nowrap;}
   .entry-cat{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
   .entry-amt{font-family:'IBM Plex Mono';font-weight:600;white-space:nowrap;}
@@ -238,6 +239,7 @@
       <nav class="tabs">
         <button class="tab-btn" data-tab="entry">Kayıt</button>
         <button class="tab-btn" data-tab="dashboard">Panel</button>
+        <button class="tab-btn" data-tab="savings">Birikim</button>
       </nav>
     </div>
     <div class="io-row">
@@ -286,7 +288,22 @@
       {name:"LG TV Taksit", planned:4500},
       {name:"Jimnastik", planned:4000}
     ],
-    incomeCategories:["Emre Maaş","İrem Allianz","İrem Ofis","Emre Ek Gelir"]
+    incomeCategories:["Emre Maaş","İrem Allianz","İrem Ofis","Emre Ek Gelir"],
+    savingsGoal: 1000000,
+    savingsPlan: [
+      {month:"2026-09", target:124100},
+      {month:"2026-10", target:124100},
+      {month:"2026-11", target:144100},
+      {month:"2026-12", target:144100},
+      {month:"2027-01", target:144100},
+      {month:"2027-02", target:144100},
+      {month:"2027-03", target:164100},
+      {month:"2027-04", target:164100},
+      {month:"2027-05", target:164100},
+      {month:"2027-06", target:164100},
+      {month:"2027-07", target:164100},
+      {month:"2027-08", target:164100}
+    ]
   };
 
   // İlk açılışta, henüz hiç gider kaydı yoksa Ağustos 2026 Excel'inden aktarılan gerçek harcamalarla başlar.
@@ -296,6 +313,7 @@
     config: null,
     expenses: [],
     incomes: [],
+    savings: [],
     loading: true,
     storageOk: true,
     storageAvailable: true,
@@ -304,6 +322,7 @@
     activeTab: 'entry',
     dashboardMonth: null,
     editingPlan: false,
+    editingSavingsPlan: false,
     errors: {}
   };
 
@@ -371,6 +390,27 @@
     return {totalIncome:totalIncome, totalExpense:totalExpense, perCategory:perCategory, savings: totalIncome-totalExpense};
   }
 
+  function computeSavingsSummary(){
+    var totalActual = sum(state.savings.map(function(s){ return s.amount; }));
+    var goal = state.config.savingsGoal || 0;
+    var plan = state.config.savingsPlan || [];
+    var cumActual = 0, cumTarget = 0;
+    var rows = plan.map(function(p){
+      var monthActual = sum(state.savings.filter(function(s){ return monthKeyOf(s.date) === p.month; }).map(function(s){ return s.amount; }));
+      cumActual += monthActual;
+      cumTarget += p.target;
+      return {
+        month: p.month,
+        target: p.target,
+        actual: monthActual,
+        diff: monthActual - p.target,
+        cumActual: cumActual,
+        cumTarget: cumTarget
+      };
+    });
+    return { totalActual: totalActual, goal: goal, rows: rows, totalTarget: cumTarget };
+  }
+
   // ---------- Google Sheets backend ----------
   // Emre'nin Apps Script "Web app" dağıtımından aldığı URL buraya gelecek.
   var API_URL = 'https://script.google.com/macros/s/AKfycbyzQlyovbKrzNjcyEkB-RwhAO9Ru7GRY1JNqsnUs4Y5kGh3dLrgQ_nOCY4yCsGidq4n/exec';
@@ -404,7 +444,7 @@
   }
 
   async function persistAll(){
-    return apiSave({ config: state.config, expenses: state.expenses, incomes: state.incomes });
+    return apiSave({ config: state.config, expenses: state.expenses, incomes: state.incomes, savings: state.savings });
   }
 
   async function loadAll(){
@@ -412,6 +452,7 @@
       state.config = DEFAULT_CONFIG;
       state.expenses = [];
       state.incomes = [];
+      state.savings = [];
       state.storageAvailable = false;
       state.loadFailed = false;
       state.storageWarning = 'Google Sheets bağlantısı henüz ayarlanmadı. Şimdilik girdiğiniz kayıtlar yalnızca bu oturumda görünecek — "Dışa Aktar" ile yedek alabilirsiniz. Bağlantı hazır olduğunda bu uyarı kaybolacak.';
@@ -427,8 +468,18 @@
       var cfgEmpty = !d.config || !d.config.categories || d.config.categories.length === 0;
       var expEmpty = !d.expenses || d.expenses.length === 0;
       state.config = cfgEmpty ? DEFAULT_CONFIG : d.config;
+      // Eski sheet verisi savingsGoal/savingsPlan alanlarından önce yazılmış olabilir - eksikse varsayılanla tamamla.
+      if(!cfgEmpty){
+        if(state.config.savingsGoal === undefined || state.config.savingsGoal === null){
+          state.config.savingsGoal = DEFAULT_CONFIG.savingsGoal;
+        }
+        if(!state.config.savingsPlan || !state.config.savingsPlan.length){
+          state.config.savingsPlan = DEFAULT_CONFIG.savingsPlan;
+        }
+      }
       state.expenses = expEmpty ? SEED_EXPENSES.slice() : d.expenses;
       state.incomes = d.incomes || [];
+      state.savings = d.savings || [];
       state.storageAvailable = true;
       state.loadFailed = false;
       state.storageWarning = '';
@@ -443,6 +494,7 @@
       state.config = DEFAULT_CONFIG;
       state.expenses = [];
       state.incomes = [];
+      state.savings = [];
       state.storageAvailable = false;
       state.loadFailed = true;
       state.storageWarning = 'Google Sheets\'e bağlanılamadı (' + result.reason + '). İnterneti kontrol edip "Tekrar Dene"yi kullanın.';
@@ -469,7 +521,7 @@
   }
 
   function exportData(){
-    var payload = { exportedAt: new Date().toISOString(), config: state.config, expenses: state.expenses, incomes: state.incomes };
+    var payload = { exportedAt: new Date().toISOString(), config: state.config, expenses: state.expenses, incomes: state.incomes, savings: state.savings };
     var blob = new Blob([JSON.stringify(payload, null, 2)], {type:'application/json'});
     var url = URL.createObjectURL(blob);
     var a = document.createElement('a');
@@ -503,6 +555,7 @@
             state.config = pendingImportData.config;
             state.expenses = pendingImportData.expenses;
             state.incomes = pendingImportData.incomes;
+            state.savings = pendingImportData.savings || [];
             state.dashboardMonth = currentMonthKey();
             pendingImportData = null;
             showImportStatus('<span style="color:var(--good);">İçe aktarma tamamlandı.</span>');
@@ -589,6 +642,36 @@
     render();
   }
 
+  async function addSaving(date, amount, description){
+    var entry = {id:uid('s'), date:date, amount:amount, description:description||''};
+    state.savings.unshift(entry);
+    state.errors.saving = '';
+    render();
+    var result = await persistAll();
+    applyPersistResult(result);
+    render();
+  }
+
+  async function deleteSaving(id){
+    state.savings = state.savings.filter(function(x){ return x.id !== id; });
+    render();
+    var result = await persistAll();
+    applyPersistResult(result);
+    render();
+  }
+
+  async function saveSavingsPlan(newGoal, newTargets){
+    state.config.savingsGoal = newGoal;
+    state.config.savingsPlan = state.config.savingsPlan.map(function(p, idx){
+      return {month:p.month, target:newTargets[idx]};
+    });
+    state.editingSavingsPlan = false;
+    render();
+    var result = await persistAll();
+    applyPersistResult(result);
+    render();
+  }
+
   // ---------- render ----------
   function render(){
     if(state.loading){
@@ -608,6 +691,8 @@
       : '';
     if(state.activeTab === 'entry'){
       app.innerHTML = banner + renderEntryTab();
+    } else if(state.activeTab === 'savings'){
+      app.innerHTML = banner + renderBirikimTab();
     } else {
       app.innerHTML = banner + renderDashboardTab();
     }
@@ -624,11 +709,13 @@
 
     var expenseEntries = state.expenses.slice().sort(function(a,b){ return b.date.localeCompare(a.date); }).slice(0, 60);
     var incomeEntries = state.incomes.slice().sort(function(a,b){ return b.date.localeCompare(a.date); });
+    var savingEntries = state.savings.slice().sort(function(a,b){ return b.date.localeCompare(a.date); });
 
     function renderEntryRow(item, type){
-      var label = item.category + (item.description ? ' — '+item.description : '');
+      var tagText = type==='exp' ? 'Gider' : (type==='inc' ? 'Gelir' : 'Birikim');
+      var label = type==='sav' ? (item.description || 'Birikim') : (item.category + (item.description ? ' — '+item.description : ''));
       return '<div class="entry-row">'
-        + '<span class="entry-tag '+(type==='exp'?'exp':'inc')+'">'+(type==='exp'?'Gider':'Gelir')+'</span>'
+        + '<span class="entry-tag '+(type==='exp'?'exp':(type==='inc'?'inc':'sav'))+'">'+tagText+'</span>'
         + '<span class="entry-date">'+escapeHtml(item.date)+'</span>'
         + '<span class="entry-cat">'+escapeHtml(label)+'</span>'
         + '<span class="entry-amt">'+fmtTRY(item.amount)+'</span>'
@@ -639,6 +726,10 @@
     var incomeListHtml = incomeEntries.length
       ? incomeEntries.map(function(i){ return renderEntryRow(i, 'inc'); }).join('')
       : '<div class="empty-state">Henüz gelir kaydı yok.</div>';
+
+    var savingListHtml = savingEntries.length
+      ? savingEntries.map(function(s){ return renderEntryRow(s, 'sav'); }).join('')
+      : '<div class="empty-state">Henüz birikim kaydı yok.</div>';
 
     var expTruncNote = state.expenses.length > expenseEntries.length
       ? ' <span style="color:var(--muted);font-weight:400;">(son '+expenseEntries.length+' / toplam '+state.expenses.length+')</span>'
@@ -679,10 +770,27 @@
       +       '<div class="field-error">'+(state.errors.income||'')+'</div>'
       +     '</form>'
       +   '</div>'
+      +   '<div class="card">'
+      +     '<h2>Birikim Ekle</h2>'
+      +     '<form id="savingForm">'
+      +       '<label for="savDate">Tarih</label>'
+      +       '<input type="date" id="savDate" required value="'+todayStr()+'">'
+      +       '<label for="savAmount">Tutar (₺)</label>'
+      +       '<input type="number" id="savAmount" class="num-input" min="0" step="1" placeholder="0" required>'
+      +       '<label for="savDesc">Açıklama (opsiyonel)</label>'
+      +       '<input type="text" id="savDesc" placeholder="ör. Ağustos birikimi">'
+      +       '<button type="submit" class="submit-btn">Birikimi Kaydet</button>'
+      +       '<div class="field-error">'+(state.errors.saving||'')+'</div>'
+      +     '</form>'
+      +   '</div>'
       + '</div>'
       + '<div class="card">'
       +   '<div class="list-title">Son Gelirler</div>'
       +   incomeListHtml
+      + '</div>'
+      + '<div class="card">'
+      +   '<div class="list-title">Son Birikimler</div>'
+      +   savingListHtml
       + '</div>'
       + '<div class="card">'
       +   '<div class="list-title">Son Giderler'+expTruncNote+'</div>'
@@ -749,6 +857,65 @@
     return '<form id="planForm">' + rows + '<button type="submit" class="submit-btn">Planı Kaydet</button></form>';
   }
 
+  function renderBirikimTab(){
+    var s = computeSavingsSummary();
+    var pct = s.goal > 0 ? Math.min(100, s.totalActual / s.goal * 100) : 0;
+    var remaining = s.goal - s.totalActual;
+    var remainingHtml = remaining > 0
+      ? fmtTRY(remaining) + ' kaldı'
+      : '<span style="color:var(--good);font-weight:600;">Hedefe ulaşıldı 🎉</span>';
+
+    var goalCard = '<div class="card">'
+      + '<div class="top-row"><h2>1.000.000 TL Hedefi</h2>'
+      +   '<button class="plan-toggle" id="toggleSavingsPlanEdit">'+(state.editingSavingsPlan ? 'Vazgeç' : 'Hedefi Düzenle')+'</button></div>'
+      + '<div style="margin:12px 0 6px;font-family:\'IBM Plex Mono\';font-size:28px;font-weight:600;">'
+      +   fmtTRY(s.totalActual) + ' <span style="font-size:15px;color:var(--muted);font-weight:400;">/ '+fmtTRY(s.goal)+'</span>'
+      + '</div>'
+      + '<div class="bar-track" style="height:9px;"><div class="bar-fill" style="width:'+pct+'%"></div></div>'
+      + '<div style="margin-top:8px;font-size:13px;color:var(--muted);">'+remainingHtml+'</div>'
+      + '</div>';
+
+    var planEditorHtml = state.editingSavingsPlan ? renderSavingsPlanEditor() : '';
+
+    var capacityNote = '<div class="footnote" style="margin-top:0;">Aylık hedefler, sabit giderler sonrası gelir kapasitenize göre hesaplanmıştır. 12 ayın toplamı '+fmtTRY(s.totalTarget)+' — genel 1.000.000 TL hedefinin üzerinde, bu da değişken harcamalar için pay bırakır.</div>';
+
+    var rowsHtml = state.editingSavingsPlan ? '' : s.rows.map(function(r){
+      var diffColor = r.diff >= 0 ? 'var(--good)' : 'var(--warn)';
+      var diffSign = r.diff >= 0 ? '+' : '';
+      var barColor = r.actual >= r.target ? 'var(--good)' : 'var(--amber)';
+      var barPct = r.target > 0 ? Math.min(100, r.actual / r.target * 100) : (r.actual > 0 ? 100 : 0);
+      return '<div class="cat-row">'
+        + '<div class="cat-head">'
+        +   '<span class="cat-name">'+monthLabel(r.month)+'</span>'
+        +   '<span class="cat-leader"></span>'
+        +   '<span class="cat-figures">'+fmtTRY(r.actual)+' / '+fmtTRY(r.target)+'</span>'
+        + '</div>'
+        + '<div class="bar-track"><div class="bar-fill" style="width:'+barPct+'%;background:'+barColor+';"></div></div>'
+        + '<div style="display:flex;justify-content:space-between;margin-top:5px;font-size:12.5px;color:var(--muted);">'
+        +   '<span>Fark: <span style="color:'+diffColor+';font-weight:600;">'+diffSign+fmtTRY(r.diff)+'</span></span>'
+        +   '<span>Kümülatif: '+fmtTRY(r.cumActual)+' / '+fmtTRY(r.cumTarget)+'</span>'
+        + '</div>'
+        + '</div>';
+    }).join('');
+
+    return goalCard
+      + '<div class="card">'
+      +   capacityNote
+      +   planEditorHtml
+      +   rowsHtml
+      + '</div>';
+  }
+
+  function renderSavingsPlanEditor(){
+    var goalRow = '<div class="plan-row"><label for="savGoalInput" style="flex:1;">Toplam Hedef (TL)</label>'
+      + '<input type="number" min="0" step="1000" class="num-input" id="savGoalInput" value="'+state.config.savingsGoal+'" style="width:160px;"></div>';
+    var rows = state.config.savingsPlan.map(function(p, idx){
+      return '<div class="plan-row"><label for="savplan_'+idx+'">'+monthLabel(p.month)+'</label>'
+        + '<input type="number" min="0" step="100" class="num-input" id="savplan_'+idx+'" value="'+p.target+'"></div>';
+    }).join('');
+    return '<form id="savingsPlanForm">' + goalRow + rows + '<button type="submit" class="submit-btn">Hedefi Kaydet</button></form>';
+  }
+
   // ---------- events ----------
   function bindEvents(){
     var retryBtn = document.getElementById('retryStorage');
@@ -811,11 +978,30 @@
       };
     }
 
+    var savForm = document.getElementById('savingForm');
+    if(savForm){
+      savForm.onsubmit = function(ev){
+        ev.preventDefault();
+        state.errors.saving = '';
+        var date = document.getElementById('savDate').value;
+        var amount = parseFloat(document.getElementById('savAmount').value);
+        var desc = document.getElementById('savDesc').value.trim();
+        if(!date || !amount || amount <= 0){
+          state.errors.saving = 'Lütfen tarih ve geçerli bir tutar girin.';
+          render();
+          return;
+        }
+        addSaving(date, amount, desc);
+      };
+    }
+
     document.querySelectorAll('[data-del]').forEach(function(btn){
       btn.onclick = function(){
         var type = btn.getAttribute('data-del');
         var id = btn.getAttribute('data-id');
-        if(type === 'exp'){ deleteExpense(id); } else { deleteIncome(id); }
+        if(type === 'exp'){ deleteExpense(id); }
+        else if(type === 'inc'){ deleteIncome(id); }
+        else if(type === 'sav'){ deleteSaving(id); }
       };
     });
 
@@ -844,6 +1030,28 @@
           return isNaN(v) || v < 0 ? c.planned : v;
         });
         savePlan(newPlanned);
+      };
+    }
+
+    var toggleSavPlanBtn = document.getElementById('toggleSavingsPlanEdit');
+    if(toggleSavPlanBtn){
+      toggleSavPlanBtn.onclick = function(){
+        state.editingSavingsPlan = !state.editingSavingsPlan;
+        render();
+      };
+    }
+
+    var savingsPlanForm = document.getElementById('savingsPlanForm');
+    if(savingsPlanForm){
+      savingsPlanForm.onsubmit = function(ev){
+        ev.preventDefault();
+        var newGoal = parseFloat(document.getElementById('savGoalInput').value);
+        if(isNaN(newGoal) || newGoal < 0){ newGoal = state.config.savingsGoal; }
+        var newTargets = state.config.savingsPlan.map(function(p, idx){
+          var v = parseFloat(document.getElementById('savplan_'+idx).value);
+          return isNaN(v) || v < 0 ? p.target : v;
+        });
+        saveSavingsPlan(newGoal, newTargets);
       };
     }
   }
