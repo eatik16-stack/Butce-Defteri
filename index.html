@@ -317,8 +317,25 @@
       {month:"2027-06", amount:117100},
       {month:"2027-07", amount:117100},
       {month:"2027-08", amount:117100}
-    ]
+    ],
+    currentRates: { gramAltin: 6908, usd: 48.2, eur: 56.2 }
   };
+
+  var SAVINGS_INSTRUMENTS = ["TL Nakit", "Altın (gram)", "Dolar", "Euro", "Hisse Senedi", "Fon"];
+
+  function tlEquivalent(entry, rates){
+    if(entry.instrument === 'Altın (gram)'){ return entry.amount * (rates.gramAltin || 0); }
+    if(entry.instrument === 'Dolar'){ return entry.amount * (rates.usd || 0); }
+    if(entry.instrument === 'Euro'){ return entry.amount * (rates.eur || 0); }
+    return entry.amount; // TL Nakit, Hisse Senedi, Fon: zaten TL cinsinden girilir
+  }
+
+  function formatNativeAmount(instrument, amount){
+    if(instrument === 'Altın (gram)'){ return amount.toLocaleString('tr-TR', {maximumFractionDigits:2}) + ' gr'; }
+    if(instrument === 'Dolar'){ return '$' + amount.toLocaleString('tr-TR', {maximumFractionDigits:2}); }
+    if(instrument === 'Euro'){ return '€' + amount.toLocaleString('tr-TR', {maximumFractionDigits:2}); }
+    return fmtTRY(amount);
+  }
 
   // İlk açılışta, henüz hiç gider kaydı yoksa Ağustos 2026 Excel'inden aktarılan gerçek harcamalarla başlar.
   var SEED_EXPENSES = [{"id": "seed_e_001", "date": "2026-08-02", "amount": 33000, "category": "Ev kirası", "description": "Kira"}, {"id": "seed_e_002", "date": "2026-08-02", "amount": 3600, "category": "Ev aidatı", "description": "Aidat"}, {"id": "seed_e_003", "date": "2026-08-03", "amount": 20000, "category": "Araba kredisi", "description": "Araba Kredisi"}, {"id": "seed_e_004", "date": "2026-08-03", "amount": 7000, "category": "Kredi Kartı Kredisi", "description": "KK Kredisi"}, {"id": "seed_e_005", "date": "2026-08-03", "amount": 32000, "category": "Kreş", "description": "Kreş"}, {"id": "seed_e_006", "date": "2026-08-20", "amount": 20000, "category": "Ofis Kirası", "description": "Ofis Kira"}, {"id": "seed_e_007", "date": "2026-08-20", "amount": 5000, "category": "Ofis Aidatı", "description": "Ofis Aidat"}, {"id": "seed_e_008", "date": "2026-08-20", "amount": 5466, "category": "Ofis Stopaj", "description": "Ofis Stopaj"}, {"id": "seed_e_009", "date": "2026-08-20", "amount": 10000, "category": "Ofis Sigorta", "description": "Ofis Sigorta"}, {"id": "seed_e_010", "date": "2026-08-21", "amount": 200, "category": "Fatura", "description": "Kıvanç Turkcell"}, {"id": "seed_e_011", "date": "2026-08-21", "amount": 405, "category": "Giyim", "description": "Emre Mayo"}, {"id": "seed_e_012", "date": "2026-08-21", "amount": 275, "category": "Dışarıda Yemek", "description": "Sufleli Dondurma"}, {"id": "seed_e_013", "date": "2026-08-20", "amount": 285, "category": "Dışarıda Yemek", "description": "Künefe"}, {"id": "seed_e_014", "date": "2026-08-18", "amount": 480, "category": "Sigara", "description": "Market"}, {"id": "seed_e_015", "date": "2026-08-16", "amount": 516, "category": "Market", "description": "Market"}, {"id": "seed_e_016", "date": "2026-08-15", "amount": 515, "category": "Market", "description": "Market"}, {"id": "seed_e_017", "date": "2026-08-14", "amount": 750, "category": "Dışarıda Yemek", "description": "Sülale Pide"}, {"id": "seed_e_018", "date": "2026-08-14", "amount": 675, "category": "Dışarıda Yemek", "description": "Profiterol"}, {"id": "seed_e_019", "date": "2026-08-14", "amount": 750, "category": "Market", "description": "Sucuk"}, {"id": "seed_e_020", "date": "2026-08-13", "amount": 645, "category": "Dışarıda Yemek", "description": "Kahve"}, {"id": "seed_e_021", "date": "2026-08-11", "amount": 355, "category": "Dışarıda Yemek", "description": "Matador"}, {"id": "seed_e_022", "date": "2026-08-10", "amount": 830, "category": "Dışarıda Yemek", "description": "Daffy Dark"}, {"id": "seed_e_023", "date": "2026-08-10", "amount": 600, "category": "Sigara", "description": "Sigara"}, {"id": "seed_e_024", "date": "2026-08-09", "amount": 2500, "category": "Taşıt Yakıt", "description": "Benzin"}, {"id": "seed_e_025", "date": "2026-08-08", "amount": 425, "category": "Genel Alışveriş", "description": "Genel Oyuncak"}, {"id": "seed_e_026", "date": "2026-08-08", "amount": 800, "category": "Dışarıda Yemek", "description": "Ecrin Pasta"}, {"id": "seed_e_027", "date": "2026-08-08", "amount": 1000, "category": "Hediye", "description": "Ecrin Hediye"}, {"id": "seed_e_028", "date": "2026-08-08", "amount": 530, "category": "Dışarıda Yemek", "description": "Mayalı"}, {"id": "seed_e_029", "date": "2026-08-07", "amount": 570, "category": "Dışarıda Yemek", "description": "Matador"}, {"id": "seed_e_030", "date": "2026-08-06", "amount": 6665, "category": "Genel Alışveriş", "description": "Motorun Son Taksidi"}, {"id": "seed_e_031", "date": "2026-08-05", "amount": 320, "category": "Sigara", "description": "Sigara"}, {"id": "seed_e_032", "date": "2026-08-05", "amount": 385, "category": "Dışarıda Yemek", "description": "Kahve"}, {"id": "seed_e_033", "date": "2026-08-04", "amount": 550, "category": "Dışarıda Yemek", "description": "Yemek"}, {"id": "seed_e_034", "date": "2026-08-03", "amount": 2500, "category": "Taşıt Yakıt", "description": "Benzin"}, {"id": "seed_e_035", "date": "2026-08-03", "amount": 300, "category": "Genel Alışveriş", "description": "Hotel"}, {"id": "seed_e_036", "date": "2026-08-02", "amount": 258, "category": "Market", "description": "Market"}, {"id": "seed_e_037", "date": "2026-08-02", "amount": 1470, "category": "Dışarıda Yemek", "description": "Yemek Tatil"}, {"id": "seed_e_038", "date": "2026-08-02", "amount": 760, "category": "Dışarıda Yemek", "description": "Yemek Tatil"}, {"id": "seed_e_039", "date": "2026-08-02", "amount": 300, "category": "Dışarıda Yemek", "description": "Pastane Tatil"}, {"id": "seed_e_040", "date": "2026-08-02", "amount": 2080, "category": "Dışarıda Yemek", "description": "Yemek Tatil"}, {"id": "seed_e_041", "date": "2026-08-01", "amount": 2750, "category": "Dışarıda Yemek", "description": "Yemek Tatil"}, {"id": "seed_e_042", "date": "2026-08-08", "amount": 450, "category": "Genel Alışveriş", "description": "Oyuncak"}, {"id": "seed_e_043", "date": "2026-08-06", "amount": 3150, "category": "Giyim", "description": "İrem Haşema"}, {"id": "seed_e_044", "date": "2026-08-06", "amount": 2200, "category": "Market", "description": "File"}, {"id": "seed_e_045", "date": "2026-08-06", "amount": 1225, "category": "İrem Vergi", "description": "Çevre Vergisi"}, {"id": "seed_e_046", "date": "2026-08-06", "amount": 800, "category": "Market", "description": "Market"}, {"id": "seed_e_047", "date": "2026-08-05", "amount": 140, "category": "Dışarıda Yemek", "description": "Matador"}, {"id": "seed_e_048", "date": "2026-08-04", "amount": 1100, "category": "Genel Alışveriş", "description": "Sinema"}, {"id": "seed_e_049", "date": "2026-08-04", "amount": 578, "category": "Fatura", "description": "Emre Telefon"}, {"id": "seed_e_050", "date": "2026-08-03", "amount": 300, "category": "Taşıt Genel Gider", "description": "Otopark İztuzu"}, {"id": "seed_e_051", "date": "2026-08-05", "amount": 754, "category": "Fatura", "description": "Su Fatura Ev"}, {"id": "seed_e_052", "date": "2026-08-04", "amount": 300, "category": "Market", "description": "Sigara"}, {"id": "seed_e_053", "date": "2026-08-13", "amount": 1005, "category": "Market", "description": "Market"}, {"id": "seed_e_054", "date": "2026-08-12", "amount": 1700, "category": "Market", "description": "Market"}, {"id": "seed_e_055", "date": "2026-08-11", "amount": 3331, "category": "İrem Vergi", "description": "KDV"}, {"id": "seed_e_056", "date": "2026-08-11", "amount": 1085, "category": "İrem Vergi", "description": "3 Aylık vergi"}, {"id": "seed_e_057", "date": "2026-08-12", "amount": 2879, "category": "Market", "description": "File"}, {"id": "seed_e_058", "date": "2026-08-13", "amount": 5944, "category": "Genel Alışveriş", "description": "Klima"}, {"id": "seed_e_059", "date": "2026-08-20", "amount": 4725, "category": "Genel Alışveriş", "description": "Aquapark"}, {"id": "seed_e_060", "date": "2026-08-30", "amount": 2800, "category": "Taşıt Genel Gider", "description": "Egea Lastik 2. Taksit"}, {"id": "seed_e_061", "date": "2026-08-08", "amount": 269, "category": "Genel Alışveriş", "description": "Oyuncak"}, {"id": "seed_e_062", "date": "2026-08-08", "amount": 380, "category": "Dışarıda Yemek", "description": "Mayalı"}, {"id": "seed_e_063", "date": "2026-08-09", "amount": 1595, "category": "Market", "description": "Market"}, {"id": "seed_e_064", "date": "2026-08-09", "amount": 525, "category": "Sigara", "description": "Sigara"}, {"id": "seed_e_065", "date": "2026-08-09", "amount": 295, "category": "Dışarıda Yemek", "description": "Mayalı"}, {"id": "seed_e_066", "date": "2026-08-10", "amount": 1800, "category": "Eczane", "description": "Eczane"}, {"id": "seed_e_067", "date": "2026-08-14", "amount": 366, "category": "Market", "description": "Market"}, {"id": "seed_e_068", "date": "2026-08-17", "amount": 737, "category": "Eczane", "description": "Eczane"}, {"id": "seed_e_069", "date": "2026-08-17", "amount": 25, "category": "Dışarıda Yemek", "description": "Burçak"}, {"id": "seed_e_070", "date": "2026-08-19", "amount": 350, "category": "Eczane", "description": "Eczane"}, {"id": "seed_e_071", "date": "2026-08-20", "amount": 742, "category": "Market", "description": "File"}, {"id": "seed_e_072", "date": "2026-08-21", "amount": 1200, "category": "Hediye", "description": "Karaca Erinöz"}, {"id": "seed_e_073", "date": "2026-08-22", "amount": 525, "category": "Hediye", "description": "LCW"}, {"id": "seed_e_074", "date": "2026-08-22", "amount": 490, "category": "Sigara", "description": "Sigara"}, {"id": "seed_e_075", "date": "2026-08-22", "amount": 220, "category": "Dışarıda Yemek", "description": "Matador"}, {"id": "seed_e_076", "date": "2026-08-22", "amount": 615, "category": "Dışarıda Yemek", "description": "Mayalı"}, {"id": "seed_e_077", "date": "2026-08-06", "amount": 1450, "category": "Giyim", "description": "İrem Giyim"}, {"id": "seed_e_078", "date": "2026-08-06", "amount": 610, "category": "Giyim", "description": "İrem Giyim"}, {"id": "seed_e_079", "date": "2026-08-06", "amount": 271, "category": "Kırtasiye", "description": "Kırtasiye"}, {"id": "seed_e_080", "date": "2026-08-06", "amount": 210, "category": "Ofis Genel Gider", "description": "Ofis Su"}, {"id": "seed_e_081", "date": "2026-08-08", "amount": 1100, "category": "Market", "description": "Bal"}, {"id": "seed_e_082", "date": "2026-08-11", "amount": 215, "category": "Genel Alışveriş", "description": "Ecrin Tren Bİleti"}, {"id": "seed_e_083", "date": "2026-08-11", "amount": 675, "category": "Market", "description": "Market"}, {"id": "seed_e_084", "date": "2026-08-14", "amount": 553, "category": "Market", "description": "Market"}, {"id": "seed_e_085", "date": "2026-08-17", "amount": 480, "category": "Giyim", "description": "Emre Giyim boxer"}, {"id": "seed_e_086", "date": "2026-08-17", "amount": 656, "category": "Market", "description": "Market"}, {"id": "seed_e_087", "date": "2026-08-17", "amount": 390, "category": "Market", "description": "Market"}, {"id": "seed_e_088", "date": "2026-08-20", "amount": 411, "category": "Giyim", "description": "İrem Giyim"}, {"id": "seed_e_089", "date": "2026-08-19", "amount": 436, "category": "Kırtasiye", "description": "Kırtasiye"}, {"id": "seed_e_090", "date": "2026-08-18", "amount": 967, "category": "Market", "description": "Migros"}, {"id": "seed_e_091", "date": "2026-08-19", "amount": 303, "category": "Market", "description": "Migros"}, {"id": "seed_e_092", "date": "2026-08-20", "amount": 230, "category": "Dijital Üyelikler", "description": "TV Plus"}, {"id": "seed_e_093", "date": "2026-08-21", "amount": 1055, "category": "Market", "description": "Migros"}, {"id": "seed_e_094", "date": "2026-08-22", "amount": 579, "category": "Fatura", "description": "Kablo TV"}, {"id": "seed_e_095", "date": "2026-08-15", "amount": 3500, "category": "Genel Alışveriş", "description": "Ev Temizliği"}, {"id": "seed_e_096", "date": "2026-08-22", "amount": 500, "category": "Hediye", "description": "Zeki Abi Takı"}, {"id": "seed_e_097", "date": "2026-08-15", "amount": 1000, "category": "Hediye", "description": "Hamit Acar Takı"}, {"id": "seed_e_098", "date": "2026-08-21", "amount": 222, "category": "Ofis Genel Gider", "description": "Ofis Elektrik"}, {"id": "seed_e_099", "date": "2026-08-21", "amount": 387, "category": "Ofis Genel Gider", "description": "Ofis Su"}, {"id": "seed_e_100", "date": "2026-08-21", "amount": 629, "category": "Fatura", "description": "İrem Telefon"}, {"id": "seed_e_101", "date": "2026-08-21", "amount": 572, "category": "Ofis Genel Gider", "description": "Ofis İnternet"}, {"id": "seed_e_102", "date": "2026-08-24", "amount": 1090, "category": "Ofis Genel Gider", "description": "Ofis Klima"}, {"id": "seed_e_103", "date": "2026-08-24", "amount": 2000, "category": "Ofis Genel Gider", "description": "Ofis Muhasebe"}, {"id": "seed_e_104", "date": "2026-08-26", "amount": 296, "category": "Giyim", "description": "İrem Giyim"}, {"id": "seed_e_105", "date": "2026-08-27", "amount": 70, "category": "Dijital Üyelikler", "description": "İrem Trendyol Abonelik"}, {"id": "seed_e_106", "date": "2026-08-30", "amount": 400, "category": "Dijital Üyelikler", "description": "İrem icloud abonelik"}, {"id": "seed_e_107", "date": "2026-08-23", "amount": 300, "category": "Dışarıda Yemek", "description": "kahve"}, {"id": "seed_e_108", "date": "2026-08-24", "amount": 1032, "category": "Market", "description": "Market"}, {"id": "seed_e_109", "date": "2026-08-27", "amount": 305, "category": "Dışarıda Yemek", "description": "simit dünyası"}, {"id": "seed_e_110", "date": "2026-08-27", "amount": 240, "category": "Sigara", "description": "Sigara"}, {"id": "seed_e_111", "date": "2026-08-28", "amount": 290, "category": "Dışarıda Yemek", "description": "Dondurma"}, {"id": "seed_e_112", "date": "2026-08-29", "amount": 432, "category": "Market", "description": "Market"}, {"id": "seed_e_113", "date": "2026-08-29", "amount": 1500, "category": "Hediye", "description": "Aslan Hediye Kıvanç Giyim"}, {"id": "seed_e_114", "date": "2026-08-29", "amount": 250, "category": "Giyim", "description": "Kıvanç Giyim"}, {"id": "seed_e_115", "date": "2026-08-29", "amount": 80, "category": "Dışarıda Yemek", "description": "Burçak"}, {"id": "seed_e_116", "date": "2026-08-29", "amount": 180, "category": "Dışarıda Yemek", "description": "Burçak"}, {"id": "seed_e_117", "date": "2026-08-29", "amount": 335, "category": "Hediye", "description": "Dondurma İkramlık"}, {"id": "seed_e_118", "date": "2026-08-25", "amount": 1470, "category": "Fatura", "description": "Ev Elektrik"}, {"id": "seed_e_119", "date": "2026-08-28", "amount": 190, "category": "Fatura", "description": "Ev doğalgaz"}, {"id": "seed_e_120", "date": "2026-08-30", "amount": 880, "category": "Market", "description": "market"}, {"id": "seed_e_121", "date": "2026-08-30", "amount": 450, "category": "Dışarıda Yemek", "description": "Momo Pizza"}, {"id": "seed_e_122", "date": "2026-08-23", "amount": 260, "category": "Dışarıda Yemek", "description": "Matador"}, {"id": "seed_e_123", "date": "2026-08-25", "amount": 175, "category": "Dışarıda Yemek", "description": "Kahve"}, {"id": "seed_e_124", "date": "2026-08-26", "amount": 2091, "category": "Market", "description": "market"}, {"id": "seed_e_125", "date": "2026-08-30", "amount": 6057, "category": "İrem Vergi", "description": "KDV"}];
@@ -337,6 +354,7 @@
     dashboardMonth: null,
     editingPlan: false,
     editingSavingsPlan: false,
+    editingRates: false,
     errors: {}
   };
 
@@ -413,7 +431,8 @@
   }
 
   function computeSavingsSummary(){
-    var totalActual = sum(state.savings.map(function(s){ return s.amount; }));
+    var rates = state.config.currentRates || {gramAltin:0, usd:0, eur:0};
+    var totalActual = sum(state.savings.map(function(s){ return tlEquivalent(s, rates); }));
     var goal = state.config.savingsGoal || 0;
     var incomePlan = state.config.incomePlan || [];
     var fixedPlan = state.config.fixedExpensePlan || [];
@@ -422,7 +441,7 @@
     var rows = incomePlan.map(function(ip, idx){
       var fp = fixedPlan[idx] || {amount:0};
       var target = ip.amount - fp.amount - variableTotal;
-      var monthActual = sum(state.savings.filter(function(s){ return monthKeyOf(s.date) === ip.month; }).map(function(s){ return s.amount; }));
+      var monthActual = sum(state.savings.filter(function(s){ return monthKeyOf(s.date) === ip.month; }).map(function(s){ return tlEquivalent(s, rates); }));
       cumActual += monthActual;
       cumTarget += target;
       return {
@@ -438,6 +457,21 @@
       };
     });
     return { totalActual: totalActual, goal: goal, rows: rows, totalTarget: cumTarget, variableTotal: variableTotal };
+  }
+
+  function computePortfolioBreakdown(){
+    var rates = state.config.currentRates || {gramAltin:0, usd:0, eur:0};
+    var byInstrument = {};
+    SAVINGS_INSTRUMENTS.forEach(function(i){ byInstrument[i] = {instrument:i, nativeAmount:0, tlAmount:0}; });
+    state.savings.forEach(function(s){
+      if(!byInstrument[s.instrument]){ byInstrument[s.instrument] = {instrument:s.instrument, nativeAmount:0, tlAmount:0}; }
+      byInstrument[s.instrument].nativeAmount += s.amount;
+      byInstrument[s.instrument].tlAmount += tlEquivalent(s, rates);
+    });
+    var list = SAVINGS_INSTRUMENTS.map(function(i){ return byInstrument[i]; });
+    var grandTotal = sum(list.map(function(x){ return x.tlAmount; }));
+    list.forEach(function(x){ x.pct = grandTotal > 0 ? (x.tlAmount / grandTotal * 100) : 0; });
+    return { list: list, grandTotal: grandTotal };
   }
 
   // ---------- Google Sheets backend ----------
@@ -507,6 +541,9 @@
         }
         if(!state.config.fixedExpensePlan || !state.config.fixedExpensePlan.length){
           state.config.fixedExpensePlan = DEFAULT_CONFIG.fixedExpensePlan;
+        }
+        if(!state.config.currentRates){
+          state.config.currentRates = DEFAULT_CONFIG.currentRates;
         }
       }
       state.expenses = expEmpty ? SEED_EXPENSES.slice() : d.expenses;
@@ -674,8 +711,8 @@
     render();
   }
 
-  async function addSaving(date, amount, description){
-    var entry = {id:uid('s'), date:date, amount:amount, description:description||''};
+  async function addSaving(date, amount, instrument, description){
+    var entry = {id:uid('s'), date:date, amount:amount, instrument:instrument, description:description||''};
     state.savings.unshift(entry);
     state.errors.saving = '';
     render();
@@ -697,6 +734,15 @@
     state.config.incomePlan = newIncomePlan;
     state.config.fixedExpensePlan = newFixedPlan;
     state.editingSavingsPlan = false;
+    render();
+    var result = await persistAll();
+    applyPersistResult(result);
+    render();
+  }
+
+  async function saveCurrentRates(newRates){
+    state.config.currentRates = newRates;
+    state.editingRates = false;
     render();
     var result = await persistAll();
     applyPersistResult(result);
@@ -744,9 +790,24 @@
 
     function renderEntryRow(item, type){
       var tagText = type==='exp' ? 'Gider' : (type==='inc' ? 'Gelir' : 'Birikim');
-      var label = type==='sav' ? (item.description || 'Birikim') : (item.category + (item.description ? ' — '+item.description : ''));
+      var label;
+      if(type === 'sav'){
+        var rates = state.config.currentRates || {gramAltin:0, usd:0, eur:0};
+        var tlEq = tlEquivalent(item, rates);
+        var showTlEq = item.instrument !== 'TL Nakit' && item.instrument !== 'Hisse Senedi' && item.instrument !== 'Fon';
+        label = (item.instrument || 'TL Nakit') + (item.description ? ' — '+item.description : '');
+        var amtDisplay = formatNativeAmount(item.instrument, item.amount) + (showTlEq ? ' (≈'+fmtTRY(tlEq)+')' : '');
+        return '<div class="entry-row">'
+          + '<span class="entry-tag sav">Birikim</span>'
+          + '<span class="entry-date">'+escapeHtml(item.date)+'</span>'
+          + '<span class="entry-cat">'+escapeHtml(label)+'</span>'
+          + '<span class="entry-amt">'+amtDisplay+'</span>'
+          + '<button class="del-btn" data-del="sav" data-id="'+escapeHtml(item.id)+'" title="Sil" aria-label="Kaydı sil">✕</button>'
+          + '</div>';
+      }
+      label = item.category + (item.description ? ' — '+item.description : '');
       return '<div class="entry-row">'
-        + '<span class="entry-tag '+(type==='exp'?'exp':(type==='inc'?'inc':'sav'))+'">'+tagText+'</span>'
+        + '<span class="entry-tag '+(type==='exp'?'exp':'inc')+'">'+tagText+'</span>'
         + '<span class="entry-date">'+escapeHtml(item.date)+'</span>'
         + '<span class="entry-cat">'+escapeHtml(label)+'</span>'
         + '<span class="entry-amt">'+fmtTRY(item.amount)+'</span>'
@@ -806,10 +867,12 @@
       +     '<form id="savingForm">'
       +       '<label for="savDate">Tarih</label>'
       +       '<input type="date" id="savDate" required value="'+todayStr()+'">'
-      +       '<label for="savAmount">Tutar (₺)</label>'
-      +       '<input type="number" id="savAmount" class="num-input" min="0" step="1" placeholder="0" required>'
+      +       '<label for="savInstrument">Araç</label>'
+      +       '<select id="savInstrument">'+SAVINGS_INSTRUMENTS.map(function(i){ return '<option value="'+escapeHtml(i)+'">'+escapeHtml(i)+'</option>'; }).join('')+'</select>'
+      +       '<label for="savAmount" id="savAmountLabel">Tutar (₺)</label>'
+      +       '<input type="number" id="savAmount" class="num-input" step="0.01" placeholder="0" required>'
       +       '<label for="savDesc">Açıklama (opsiyonel)</label>'
-      +       '<input type="text" id="savDesc" placeholder="ör. Ağustos birikimi">'
+      +       '<input type="text" id="savDesc" placeholder="ör. Ziraat fonu">'
       +       '<button type="submit" class="submit-btn">Birikimi Kaydet</button>'
       +       '<div class="field-error">'+(state.errors.saving||'')+'</div>'
       +     '</form>'
@@ -930,12 +993,54 @@
         + '</div>';
     }).join('');
 
+    var portfolio = computePortfolioBreakdown();
+    var rates = state.config.currentRates || {gramAltin:0, usd:0, eur:0};
+    var ratesEditorHtml = state.editingRates ? renderRatesEditor() : '';
+    var portfolioRows = state.editingRates ? '' : portfolio.list
+      .filter(function(x){ return x.nativeAmount !== 0; })
+      .map(function(x){
+        return '<div class="cat-row">'
+          + '<div class="cat-head">'
+          +   '<span class="cat-name">'+escapeHtml(x.instrument)+'</span>'
+          +   '<span class="cat-leader"></span>'
+          +   '<span class="cat-figures">'+formatNativeAmount(x.instrument, x.nativeAmount)+'</span>'
+          + '</div>'
+          + '<div class="bar-track"><div class="bar-fill" style="width:'+x.pct+'%;"></div></div>'
+          + '<div style="display:flex;justify-content:space-between;margin-top:5px;font-size:12.5px;color:var(--muted);">'
+          +   '<span>TL karşılığı: <strong style="color:var(--ink);">'+fmtTRY(x.tlAmount)+'</strong></span>'
+          +   '<span>%'+x.pct.toFixed(1)+'</span>'
+          + '</div>'
+          + '</div>';
+      }).join('');
+    var portfolioEmpty = (portfolio.list.every(function(x){ return x.nativeAmount === 0; }) && !state.editingRates)
+      ? '<div class="empty-state">Henüz birikim kaydı yok.</div>' : '';
+
+    var ratesCard = '<div class="card">'
+      + '<div class="top-row"><h2>Portföy Dağılımı</h2>'
+      +   '<button class="plan-toggle" id="toggleRatesEdit">'+(state.editingRates ? 'Vazgeç' : 'Kurları Güncelle')+'</button></div>'
+      + '<div class="footnote" style="margin-top:0;">TL karşılıkları güncel kur/altın fiyatına göre hesaplanır (geçmiş girişlerin tarihindeki kur değil) — gram altın '+fmtTRY(rates.gramAltin)+', dolar '+rates.usd.toLocaleString('tr-TR')+' ₺, euro '+rates.eur.toLocaleString('tr-TR')+' ₺.</div>'
+      + ratesEditorHtml
+      + portfolioRows
+      + portfolioEmpty
+      + '</div>';
+
     return goalCard
       + '<div class="card">'
       +   capacityNote
       +   planEditorHtml
       +   rowsHtml
-      + '</div>';
+      + '</div>'
+      + ratesCard;
+  }
+
+  function renderRatesEditor(){
+    var r = state.config.currentRates;
+    return '<form id="ratesForm">'
+      + '<div class="plan-row"><label for="rateGoldInput" style="flex:1;">Gram Altın (₺)</label><input type="number" min="0" step="1" class="num-input" id="rateGoldInput" value="'+r.gramAltin+'" style="width:140px;"></div>'
+      + '<div class="plan-row"><label for="rateUsdInput" style="flex:1;">Dolar (₺)</label><input type="number" min="0" step="0.01" class="num-input" id="rateUsdInput" value="'+r.usd+'" style="width:140px;"></div>'
+      + '<div class="plan-row"><label for="rateEurInput" style="flex:1;">Euro (₺)</label><input type="number" min="0" step="0.01" class="num-input" id="rateEurInput" value="'+r.eur+'" style="width:140px;"></div>'
+      + '<button type="submit" class="submit-btn">Kurları Kaydet</button>'
+      + '</form>';
   }
 
   function renderSavingsPlanEditor(){
@@ -1022,14 +1127,29 @@
         ev.preventDefault();
         state.errors.saving = '';
         var date = document.getElementById('savDate').value;
+        var instrument = document.getElementById('savInstrument').value;
         var amount = parseFloat(document.getElementById('savAmount').value);
         var desc = document.getElementById('savDesc').value.trim();
-        if(!date || !amount || amount <= 0){
-          state.errors.saving = 'Lütfen tarih ve geçerli bir tutar girin.';
+        if(!date || !amount || isNaN(amount)){
+          state.errors.saving = 'Lütfen tarih ve geçerli (sıfırdan farklı) bir miktar girin.';
           render();
           return;
         }
-        addSaving(date, amount, desc);
+        addSaving(date, amount, instrument, desc);
+      };
+    }
+
+    var savInstrumentSelect = document.getElementById('savInstrument');
+    if(savInstrumentSelect){
+      savInstrumentSelect.onchange = function(){
+        var lbl = document.getElementById('savAmountLabel');
+        var val = savInstrumentSelect.value;
+        if(lbl){
+          if(val === 'Altın (gram)'){ lbl.textContent = 'Miktar (gram)'; }
+          else if(val === 'Dolar'){ lbl.textContent = 'Miktar ($)'; }
+          else if(val === 'Euro'){ lbl.textContent = 'Miktar (€)'; }
+          else { lbl.textContent = 'Tutar (₺)'; }
+        }
       };
     }
 
@@ -1094,6 +1214,31 @@
           return {month:fp.month, amount: (isNaN(v) || v < 0) ? fp.amount : v};
         });
         saveSavingsPlan(newGoal, newIncomePlan, newFixedPlan);
+      };
+    }
+
+    var toggleRatesBtn = document.getElementById('toggleRatesEdit');
+    if(toggleRatesBtn){
+      toggleRatesBtn.onclick = function(){
+        state.editingRates = !state.editingRates;
+        render();
+      };
+    }
+
+    var ratesForm = document.getElementById('ratesForm');
+    if(ratesForm){
+      ratesForm.onsubmit = function(ev){
+        ev.preventDefault();
+        var r = state.config.currentRates;
+        var gold = parseFloat(document.getElementById('rateGoldInput').value);
+        var usd = parseFloat(document.getElementById('rateUsdInput').value);
+        var eur = parseFloat(document.getElementById('rateEurInput').value);
+        var newRates = {
+          gramAltin: (isNaN(gold) || gold < 0) ? r.gramAltin : gold,
+          usd: (isNaN(usd) || usd < 0) ? r.usd : usd,
+          eur: (isNaN(eur) || eur < 0) ? r.eur : eur
+        };
+        saveCurrentRates(newRates);
       };
     }
   }
