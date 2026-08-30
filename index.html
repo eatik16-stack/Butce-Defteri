@@ -378,6 +378,10 @@
     return prefix + '_' + Date.now().toString(36) + Math.random().toString(36).slice(2,7);
   }
 
+  function displayDate(dateStr){
+    return (dateStr || '').slice(0, 10);
+  }
+
   function monthKeyOf(dateStr){ return (dateStr || '').slice(0,7); }
 
   function currentMonthKey(){
@@ -530,6 +534,7 @@
       var d = result.data || {};
       var cfgEmpty = !d.config || !d.config.categories || d.config.categories.length === 0;
       var expEmpty = !d.expenses || d.expenses.length === 0;
+      var ratesNeededBackfill = false;
       state.config = cfgEmpty ? DEFAULT_CONFIG : d.config;
       // Eski sheet verisi savingsGoal/incomePlan/fixedExpensePlan alanlarından önce yazılmış olabilir - eksikse varsayılanla tamamla.
       if(!cfgEmpty){
@@ -542,8 +547,10 @@
         if(!state.config.fixedExpensePlan || !state.config.fixedExpensePlan.length){
           state.config.fixedExpensePlan = DEFAULT_CONFIG.fixedExpensePlan;
         }
-        if(!state.config.currentRates){
+        var cr = state.config.currentRates;
+        if(!cr || (!cr.gramAltin && !cr.usd && !cr.eur)){
           state.config.currentRates = DEFAULT_CONFIG.currentRates;
+          ratesNeededBackfill = true;
         }
       }
       state.expenses = expEmpty ? SEED_EXPENSES.slice() : d.expenses;
@@ -555,8 +562,8 @@
       state.loading = false;
       state.dashboardMonth = currentMonthKey();
       render();
-      if(cfgEmpty || expEmpty){
-        // Sheet ilk kez kullanılıyor: başlangıç verisini geri yazıp Sheet'i kaynak haline getir.
+      if(cfgEmpty || expEmpty || ratesNeededBackfill){
+        // Sheet ilk kez kullanılıyor (ya da kurlar hiç girilmemiş): başlangıç verisini geri yazıp Sheet'i kaynak haline getir.
         persistAll();
       }
     } else {
@@ -799,7 +806,7 @@
         var amtDisplay = formatNativeAmount(item.instrument, item.amount) + (showTlEq ? ' (≈'+fmtTRY(tlEq)+')' : '');
         return '<div class="entry-row">'
           + '<span class="entry-tag sav">Birikim</span>'
-          + '<span class="entry-date">'+escapeHtml(item.date)+'</span>'
+          + '<span class="entry-date">'+escapeHtml(displayDate(item.date))+'</span>'
           + '<span class="entry-cat">'+escapeHtml(label)+'</span>'
           + '<span class="entry-amt">'+amtDisplay+'</span>'
           + '<button class="del-btn" data-del="sav" data-id="'+escapeHtml(item.id)+'" title="Sil" aria-label="Kaydı sil">✕</button>'
@@ -808,7 +815,7 @@
       label = item.category + (item.description ? ' — '+item.description : '');
       return '<div class="entry-row">'
         + '<span class="entry-tag '+(type==='exp'?'exp':'inc')+'">'+tagText+'</span>'
-        + '<span class="entry-date">'+escapeHtml(item.date)+'</span>'
+        + '<span class="entry-date">'+escapeHtml(displayDate(item.date))+'</span>'
         + '<span class="entry-cat">'+escapeHtml(label)+'</span>'
         + '<span class="entry-amt">'+fmtTRY(item.amount)+'</span>'
         + '<button class="del-btn" data-del="'+type+'" data-id="'+escapeHtml(item.id)+'" title="Sil" aria-label="Kaydı sil">✕</button>'
