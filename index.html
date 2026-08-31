@@ -401,6 +401,24 @@
     }
   }
 
+  // "2026-09" gibi salt-ay anahtarları da Sheets tarafından tarihe çevrilip aynı şekilde kayabiliyor
+  // (GelirPlani/SabitGiderPlani sayfalarındaki "ay" sütunu). Aynı mantıkla düzeltiyoruz.
+  function normalizeMonthKey(monthStr){
+    if(!monthStr) return monthStr;
+    var s = String(monthStr);
+    if(s.indexOf('T') === -1) return s.slice(0,7);
+    try{
+      var d = new Date(s);
+      if(isNaN(d.getTime())) return s.slice(0,7);
+      d.setUTCHours(d.getUTCHours() + 3);
+      var y = d.getUTCFullYear();
+      var m = (d.getUTCMonth()+1).toString().padStart(2,'0');
+      return y + '-' + m;
+    }catch(e){
+      return s.slice(0,7);
+    }
+  }
+
   function monthKeyOf(dateStr){ return (dateStr || '').slice(0,7); }
 
   function currentMonthKey(){
@@ -572,6 +590,20 @@
           ratesNeededBackfill = true;
         }
       }
+
+      // "ay" anahtarları da (GelirPlani/SabitGiderPlani) aynı Sheets tarih-kayması sorunundan etkilenmiş olabilir.
+      var monthKeysFixed = false;
+      state.config.incomePlan = (state.config.incomePlan || []).map(function(p){
+        var fixed = normalizeMonthKey(p.month);
+        if(fixed !== p.month){ monthKeysFixed = true; }
+        return {month: fixed, amount: p.amount};
+      });
+      state.config.fixedExpensePlan = (state.config.fixedExpensePlan || []).map(function(p){
+        var fixed = normalizeMonthKey(p.month);
+        if(fixed !== p.month){ monthKeysFixed = true; }
+        return {month: fixed, amount: p.amount};
+      });
+
       state.expenses = expEmpty ? SEED_EXPENSES.slice() : d.expenses;
       state.incomes = d.incomes || [];
       state.savings = d.savings || [];
@@ -600,7 +632,7 @@
       state.loading = false;
       state.dashboardMonth = currentMonthKey();
       render();
-      if(cfgEmpty || expEmpty || ratesNeededBackfill || datesFixed){
+      if(cfgEmpty || expEmpty || ratesNeededBackfill || datesFixed || monthKeysFixed){
         // Sheet ilk kez kullanılıyor, kurlar hiç girilmemiş, ya da tarih kayması düzeltildi: geri yaz.
         persistAll();
       }
