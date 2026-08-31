@@ -382,6 +382,25 @@
     return (dateStr || '').slice(0, 10);
   }
 
+  // Google Sheets, hücreleri kaydedilen zaman dilimine (Türkiye, +3) göre saklıyor;
+  // Apps Script bunu okuyup JSON'a çevirirken UTC'ye kayıyor (ör. "2026-08-31" -> "2026-08-30T21:00:00.000Z").
+  // Bu, ay başına denk gelen kayıtları yanlış aya kaydırabiliyor. Burada geri düzeltiyoruz.
+  function normalizeDate(dateStr){
+    if(!dateStr) return dateStr;
+    if(dateStr.indexOf('T') === -1) return dateStr; // zaten düz YYYY-MM-DD
+    try{
+      var d = new Date(dateStr);
+      if(isNaN(d.getTime())) return dateStr.slice(0,10);
+      d.setUTCHours(d.getUTCHours() + 3);
+      var y = d.getUTCFullYear();
+      var m = (d.getUTCMonth()+1).toString().padStart(2,'0');
+      var day = d.getUTCDate().toString().padStart(2,'0');
+      return y + '-' + m + '-' + day;
+    }catch(e){
+      return dateStr.slice(0,10);
+    }
+  }
+
   function monthKeyOf(dateStr){ return (dateStr || '').slice(0,7); }
 
   function currentMonthKey(){
@@ -556,14 +575,33 @@
       state.expenses = expEmpty ? SEED_EXPENSES.slice() : d.expenses;
       state.incomes = d.incomes || [];
       state.savings = d.savings || [];
+
+      // Sheets'in saat dilimi kaymasından kaynaklanan tarih hatalarını düzelt.
+      var datesFixed = false;
+      state.expenses.forEach(function(e){
+        var fixed = normalizeDate(e.date);
+        if(fixed !== e.date){ datesFixed = true; }
+        e.date = fixed;
+      });
+      state.incomes.forEach(function(i){
+        var fixed = normalizeDate(i.date);
+        if(fixed !== i.date){ datesFixed = true; }
+        i.date = fixed;
+      });
+      state.savings.forEach(function(s){
+        var fixed = normalizeDate(s.date);
+        if(fixed !== s.date){ datesFixed = true; }
+        s.date = fixed;
+      });
+
       state.storageAvailable = true;
       state.loadFailed = false;
       state.storageWarning = '';
       state.loading = false;
       state.dashboardMonth = currentMonthKey();
       render();
-      if(cfgEmpty || expEmpty || ratesNeededBackfill){
-        // Sheet ilk kez kullanılıyor (ya da kurlar hiç girilmemiş): başlangıç verisini geri yazıp Sheet'i kaynak haline getir.
+      if(cfgEmpty || expEmpty || ratesNeededBackfill || datesFixed){
+        // Sheet ilk kez kullanılıyor, kurlar hiç girilmemiş, ya da tarih kayması düzeltildi: geri yaz.
         persistAll();
       }
     } else {
@@ -632,6 +670,9 @@
             state.expenses = pendingImportData.expenses;
             state.incomes = pendingImportData.incomes;
             state.savings = pendingImportData.savings || [];
+            state.expenses.forEach(function(e){ e.date = normalizeDate(e.date); });
+            state.incomes.forEach(function(i){ i.date = normalizeDate(i.date); });
+            state.savings.forEach(function(s){ s.date = normalizeDate(s.date); });
             state.dashboardMonth = currentMonthKey();
             pendingImportData = null;
             showImportStatus('<span style="color:var(--good);">İçe aktarma tamamlandı.</span>');
