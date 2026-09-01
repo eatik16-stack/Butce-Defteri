@@ -283,7 +283,6 @@
       {name:"Eczane", planned:1000},
       {name:"Sigara", planned:2000},
       {name:"Ofis Genel Gider", planned:5000},
-      {name:"Kırtasiye", planned:0},
       {name:"Dijital Üyelikler", planned:1000},
       {name:"LG TV Taksit", planned:4500},
       {name:"Jimnastik", planned:4000}
@@ -604,6 +603,15 @@
         return {month: fixed, amount: p.amount};
       });
 
+      // Kaldırılan kategorileri (ör. "Kırtasiye") daha önce Sheet'e yazılmışsa listeden temizle.
+      var REMOVED_CATEGORIES = ["Kırtasiye"];
+      var categoryRemoved = false;
+      var beforeCatCount = (state.config.categories || []).length;
+      state.config.categories = (state.config.categories || []).filter(function(c){
+        return REMOVED_CATEGORIES.indexOf(c.name) === -1;
+      });
+      if(state.config.categories.length !== beforeCatCount){ categoryRemoved = true; }
+
       state.expenses = expEmpty ? SEED_EXPENSES.slice() : d.expenses;
       state.incomes = d.incomes || [];
       state.savings = d.savings || [];
@@ -632,7 +640,7 @@
       state.loading = false;
       state.dashboardMonth = currentMonthKey();
       render();
-      if(cfgEmpty || expEmpty || ratesNeededBackfill || datesFixed || monthKeysFixed){
+      if(cfgEmpty || expEmpty || ratesNeededBackfill || datesFixed || monthKeysFixed || categoryRemoved){
         // Sheet ilk kez kullanılıyor, kurlar hiç girilmemiş, ya da tarih kayması düzeltildi: geri yaz.
         persistAll();
       }
