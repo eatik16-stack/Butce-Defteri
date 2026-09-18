@@ -1,0 +1,15 @@
+{
+  "name": "Bütçe Defteri",
+  "short_name": "Bütçe",
+  "description": "Emre & İrem ortak hane bütçesi",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#EFEADA",
+  "theme_color": "#1F3327",
+  "lang": "tr",
+  "icons": [
+    { "src": "apple-touch-icon.png", "sizes": "180x180", "type": "image/png" },
+    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
+  ]
+}
