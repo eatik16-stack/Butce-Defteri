@@ -202,6 +202,8 @@
   .confirm-del{display:inline-flex;align-items:center;gap:6px;font-size:12px;color:var(--warn);white-space:nowrap;}
   .confirm-del button{border:1px solid var(--line);background:var(--card);border-radius:999px;padding:3px 9px;font-size:12px;font-weight:600;cursor:pointer;font-family:'IBM Plex Sans';}
   .confirm-del button.yes{background:var(--warn);border-color:var(--warn);color:#fff;}
+  .entry-row.just-added{animation:flashNew 2.2s var(--ease);border-radius:8px;}
+  @keyframes flashNew{0%{background:var(--gold-soft);}70%{background:var(--gold-soft);}100%{background:transparent;}}
   @media (max-width:520px){ .entry-date{display:none;} }
 
   /* ---------- dashboard ---------- */
@@ -411,6 +413,7 @@
     chartPeriod: 'monthly',
     expandedCategory: null,
     confirmDeleteId: null,
+    justAddedId: null,
     showAllExpenses: false,
     editingPlan: false, editingSavingsPlan: false, editingRates: false,
     errors: {}
@@ -439,6 +442,22 @@
     return (n < 0 ? '−' : '') + '₺' + s;
   }
   function uid(prefix){ return prefix + '_' + Date.now().toString(36) + Math.random().toString(36).slice(2,7); }
+  // Aynı tarihli kayıtlarda en son eklenen üstte kalsın: kayıt zamanını createdAt'ten,
+  // yoksa id'nin içindeki zaman damgasından (uid formatı) çöz. Sheet'e yazılmasa bile id kalıcı.
+  function recencyKey(e){
+    if(e && e.createdAt){ var t = Date.parse(e.createdAt); if(!isNaN(t)) return t; }
+    var m = String((e && e.id) || '').match(/^[a-z]+_([0-9a-z]+)$/i);
+    if(m && m[1].length > 5){
+      var parsed = parseInt(m[1].slice(0, -5), 36);
+      if(!isNaN(parsed) && parsed > 0) return parsed;
+    }
+    return 0;
+  }
+  function byNewest(a, b){
+    var d = String(b.date).localeCompare(String(a.date));
+    if(d !== 0) return d;
+    return recencyKey(b) - recencyKey(a);
+  }
   function sum(arr){ return arr.reduce(function(a,b){ return a+b; }, 0); }
   function displayDate(dateStr){ return (dateStr || '').slice(0, 10); }
   function normalizeDate(dateStr){
@@ -797,7 +816,7 @@
     document.getElementById('importBtn').onclick = function(){ importInput.click(); };
     importInput.onchange = function(){ if(importInput.files && importInput.files[0]){ handleImportFile(importInput.files[0]); } importInput.value = ''; };
     document.querySelectorAll('.tab-btn, .bottom-nav button').forEach(function(btn){
-      btn.onclick = function(){ state.activeTab = btn.getAttribute('data-tab'); state.errors = {}; state.confirmDeleteId = null; render(); window.scrollTo({top:0}); };
+      btn.onclick = function(){ state.activeTab = btn.getAttribute('data-tab'); state.errors = {}; state.confirmDeleteId = null; state.justAddedId = null; render(); window.scrollTo({top:0}); };
     });
   }
 
@@ -810,18 +829,21 @@
     render();
   }
   function addExpense(date, amount, category, description){
-    var entry = {id:uid('e'), date:date, amount:amount, category:category, description:description||''};
+    var entry = {id:uid('e'), date:date, amount:amount, category:category, description:description||'', createdAt:new Date().toISOString()};
     state.expenses.unshift(entry); state.createdIds[entry.id] = true; state.errors.expense = '';
+    state.justAddedId = entry.id;
     afterMutation('Gider kaydedildi ✓');
   }
   function addIncome(date, amount, description, category){
-    var entry = {id:uid('i'), date:date, amount:amount, description:description||'', category:category};
+    var entry = {id:uid('i'), date:date, amount:amount, description:description||'', category:category, createdAt:new Date().toISOString()};
     state.incomes.unshift(entry); state.createdIds[entry.id] = true; state.errors.income = '';
+    state.justAddedId = entry.id;
     afterMutation('Gelir kaydedildi ✓');
   }
   function addSaving(date, amount, instrument, description){
-    var entry = {id:uid('s'), date:date, amount:amount, instrument:instrument, description:description||''};
+    var entry = {id:uid('s'), date:date, amount:amount, instrument:instrument, description:description||'', createdAt:new Date().toISOString()};
     state.savings.unshift(entry); state.createdIds[entry.id] = true; state.errors.saving = '';
+    state.justAddedId = entry.id;
     afterMutation('Birikim kaydedildi ✓');
   }
   function deleteEntry(type, id){
@@ -867,11 +889,22 @@
   function renderEntryTab(){
     var expCatOptions = state.config.categories.map(function(c){ return '<option value="'+escapeHtml(c.name)+'">'+escapeHtml(c.name)+'</option>'; }).join('');
     var incCatOptions = state.config.incomeCategories.map(function(c){ return '<option value="'+escapeHtml(c)+'">'+escapeHtml(c)+'</option>'; }).join('');
-    var byDateDesc = function(a,b){ return String(b.date).localeCompare(String(a.date)); };
-    var allExp = state.expenses.slice().sort(byDateDesc);
+    // Sıralama tarihe göre (yeniden eskiye); aynı tarihte en son eklenen üstte.
+    // Geçmiş tarihli bir kayıt girildiğinde de kaydın görüldüğünden emin olmak için,
+    // o an eklenen kayıt bir sonraki işleme kadar listenin en başına sabitlenir.
+    function pinJustAdded(list){
+      if(!state.justAddedId) return list;
+      var idx = -1;
+      for(var i=0;i<list.length;i++){ if(list[i].id === state.justAddedId){ idx = i; break; } }
+      if(idx <= 0) return list;
+      var copy = list.slice();
+      copy.unshift(copy.splice(idx, 1)[0]);
+      return copy;
+    }
+    var allExp = pinJustAdded(state.expenses.slice().sort(byNewest));
     var expenseEntries = state.showAllExpenses ? allExp : allExp.slice(0, 40);
-    var incomeEntries = state.incomes.slice().sort(byDateDesc);
-    var savingEntries = state.savings.slice().sort(byDateDesc);
+    var incomeEntries = pinJustAdded(state.incomes.slice().sort(byNewest));
+    var savingEntries = pinJustAdded(state.savings.slice().sort(byNewest));
 
     function row(item, type){
       var label, amt;
@@ -885,7 +918,7 @@
         amt = fmtTRY(item.amount);
       }
       var tag = type==='exp' ? 'Gider' : (type==='inc' ? 'Gelir' : 'Birikim');
-      return '<div class="entry-row">'
+      return '<div class="entry-row'+(item.id === state.justAddedId ? ' just-added' : '')+'">'
         + '<span class="entry-tag '+type+'">'+tag+'</span>'
         + '<span class="entry-date">'+escapeHtml(displayDate(item.date))+'</span>'
         + '<span class="entry-cat">'+label+'</span>'
@@ -1015,7 +1048,7 @@
       var open = state.expandedCategory === c.name;
       var isOver = c.known ? c.spent > c.planned : true;
       var barClass = c.pct >= 100 ? 'over' : (c.pct >= 85 ? 'amber' : '');
-      var items = c.items.slice().sort(function(a,b){ return String(b.date).localeCompare(String(a.date)); });
+      var items = c.items.slice().sort(byNewest);
       var drill = open ? (items.length
         ? items.map(function(e){
             return '<div class="drill-row"><span class="drill-date">'+escapeHtml(displayDate(e.date))+'</span>'
