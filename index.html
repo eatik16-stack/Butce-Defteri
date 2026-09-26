@@ -387,7 +387,7 @@
       {name:"LG TV Taksit", planned:4500},
       {name:"Jimnastik", planned:4000},
       {name:"Eğlence - Spor", planned:2000},
-      {name:"Ofis Gider", planned:54000}
+      {name:"Ofis Gider", planned:60000}
     ],
     incomeCategories:["Emre Maaş","İrem Allianz","İrem Ofis","Emre Ek Gelir"],
     savingsGoal: 1000000,
@@ -406,9 +406,12 @@
   var REMOVED_CATEGORIES = ["Kırtasiye"];
   // Sonradan eklenen kategoriler: Sheet'te yoksa bu varsayılan limitle eklenir.
   // Kullanıcı limiti değiştirmişse dokunulmaz (sadece eksikse eklenir).
-  var ADDED_CATEGORIES = [{name:"Eğlence - Spor", planned:2000}, {name:"Ofis Gider", planned:54000}];
+  var ADDED_CATEGORIES = [{name:"Eğlence - Spor", planned:2000}, {name:"Ofis Gider", planned:60000}];
   // Birleştirilen kategoriler: eski ad -> yeni ad. Hem kategori listesinden kaldırılır
   // hem de geçmiş gider kayıtlarının kategorisi yeni ada taşınır.
+  // Limit düzeltmeleri: kategori hâlâ eski varsayılan değerdeyse yenisine çekilir.
+  // Kullanıcı Planı Düzenle'den başka bir rakam girdiyse dokunulmaz.
+  var LIMIT_FIXES = [{name:"Ofis Gider", from:54000, to:60000}];
   var CATEGORY_MERGES = {
     "Ofis Kirası":"Ofis Gider", "Ofis Kira":"Ofis Gider", "İrem Vergi":"Ofis Gider",
     "Ofis Sigorta":"Ofis Gider", "Ofis Aidatı":"Ofis Gider", "Ofis Stopaj":"Ofis Gider",
@@ -548,6 +551,11 @@
     out.categories = out.categories.filter(function(c){ return c && REMOVED_CATEGORIES.indexOf(c.name) === -1 && !CATEGORY_MERGES[c.name]; })
       .map(function(c){ return {name:String(c.name), planned: Number(c.planned) || 0}; });
     if(out.categories.length !== before){ changed = true; }
+    LIMIT_FIXES.forEach(function(fix){
+      out.categories.forEach(function(c){
+        if(c.name === fix.name && c.planned === fix.from){ c.planned = fix.to; changed = true; }
+      });
+    });
     ADDED_CATEGORIES.forEach(function(add){
       var exists = out.categories.some(function(c){ return c.name === add.name; });
       if(!exists){ out.categories.push({name:add.name, planned:add.planned}); changed = true; }
