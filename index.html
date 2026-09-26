@@ -382,7 +382,8 @@
       {name:"Ofis Genel Gider", planned:5000},
       {name:"Dijital Üyelikler", planned:1000},
       {name:"LG TV Taksit", planned:4500},
-      {name:"Jimnastik", planned:4000}
+      {name:"Jimnastik", planned:4000},
+      {name:"Eğlence - Spor", planned:2000}
     ],
     incomeCategories:["Emre Maaş","İrem Allianz","İrem Ofis","Emre Ek Gelir"],
     savingsGoal: 1000000,
@@ -399,6 +400,9 @@
     currentRates: { gramAltin: 6908, usd: 48.2, eur: 56.2 }
   };
   var REMOVED_CATEGORIES = ["Kırtasiye"];
+  // Sonradan eklenen kategoriler: Sheet'te yoksa bu varsayılan limitle eklenir.
+  // Kullanıcı limiti değiştirmişse dokunulmaz (sadece eksikse eklenir).
+  var ADDED_CATEGORIES = [{name:"Eğlence - Spor", planned:2000}];
   var FIXED_CATEGORY_NAMES = ["Ev kirası","Ev aidatı","Kredi Kartı Kredisi","Kreş","Ofis Kirası","Ofis Aidatı","Ofis Stopaj","Ofis Sigorta","Ofis Genel Gider","Fatura","Jimnastik","LG TV Taksit","Araba kredisi"];
   var SAVINGS_INSTRUMENTS = ["TL Nakit", "Altın (gram)", "Dolar", "Euro", "Hisse Senedi", "Fon"];
   var OTHER_CATEGORY = "Diğer (tanımsız kategori)";
@@ -525,6 +529,10 @@
     out.categories = out.categories.filter(function(c){ return c && REMOVED_CATEGORIES.indexOf(c.name) === -1; })
       .map(function(c){ return {name:String(c.name), planned: Number(c.planned) || 0}; });
     if(out.categories.length !== before){ changed = true; }
+    ADDED_CATEGORIES.forEach(function(add){
+      var exists = out.categories.some(function(c){ return c.name === add.name; });
+      if(!exists){ out.categories.push({name:add.name, planned:add.planned}); changed = true; }
+    });
     if(!Array.isArray(out.incomeCategories) || out.incomeCategories.length === 0){ out.incomeCategories = deepClone(DEFAULT_CONFIG.incomeCategories); changed = true; }
     if(out.savingsGoal === undefined || out.savingsGoal === null || isNaN(Number(out.savingsGoal))){ out.savingsGoal = DEFAULT_CONFIG.savingsGoal; changed = true; }
     out.savingsGoal = Number(out.savingsGoal);
