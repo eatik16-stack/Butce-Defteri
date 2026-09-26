@@ -311,6 +311,18 @@
   .plan-row input{width:130px;padding:8px 10px;}
 
   /* toast */
+  #updateBar{
+    position:fixed;left:50%;transform:translate(-50%,-140%);top:calc(10px + env(safe-area-inset-top));z-index:70;
+    background:var(--ink);color:var(--paper);padding:9px 10px 9px 16px;border-radius:999px;display:flex;align-items:center;gap:10px;
+    font-size:13.5px;font-weight:600;box-shadow:0 8px 24px rgba(0,0,0,.22);transition:transform .3s var(--ease);
+    white-space:nowrap;max-width:calc(100vw - 24px);
+  }
+  #updateBar.show{transform:translate(-50%,0);}
+  #updateBar button{
+    background:var(--gold);color:#fff;border:none;border-radius:999px;padding:6px 14px;
+    font-family:'IBM Plex Sans';font-weight:700;font-size:13px;cursor:pointer;
+  }
+  .version-tag{text-align:center;font-size:11px;color:var(--muted);opacity:.75;padding:4px 0 8px;letter-spacing:.04em;}
   #toast{
     position:fixed;left:50%;bottom:24px;transform:translate(-50%,20px);z-index:60;
     background:var(--ink);color:var(--paper);padding:10px 16px;border-radius:999px;font-size:13.5px;font-weight:600;
@@ -365,10 +377,12 @@
   <button data-tab="dashboard"><svg viewBox="0 0 24 24"><path d="M3 3v18h18"/><path d="m7 15 4-5 4 3 5-7"/></svg>Panel</button>
   <button data-tab="savings"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v10"/><path d="M15 9.5c0-1.2-1.3-2-3-2s-3 .8-3 2 1.3 1.6 3 2 3 .9 3 2.2-1.3 2.3-3 2.3-3-.9-3-2"/></svg>Birikim</button>
 </nav>
+<div id="updateBar" hidden><span>Yeni sürüm hazır.</span><button id="updateNow" type="button">Güncelle</button></div>
 <div id="toast" role="status" aria-live="polite"></div>
 <script>
 (function(){
   'use strict';
+  var APP_VERSION = '2026-09-26a';
   var pendingImportData = null;
   var TR_MONTHS = ["Ocak","Şubat","Mart","Nisan","Mayıs","Haziran","Temmuz","Ağustos","Eylül","Ekim","Kasım","Aralık"];
   var TR_MONTHS_SHORT = ["Oca","Şub","Mar","Nis","May","Haz","Tem","Ağu","Eyl","Eki","Kas","Ara"];
@@ -917,7 +931,7 @@
         + (hasApi() ? '<button class="ghost-btn" id="retryStorage" style="white-space:nowrap;">Tekrar Dene</button>' : '') + '</div>'
       : '';
     var body = state.activeTab === 'entry' ? renderEntryTab() : (state.activeTab === 'savings' ? renderBirikimTab() : renderDashboardTab());
-    app.innerHTML = banner + body;
+    app.innerHTML = banner + body + '<div class="version-tag">sürüm ' + escapeHtml(APP_VERSION) + '</div>';
     bindEvents();
     updateSyncPill();
   }
@@ -1354,8 +1368,38 @@
     resizeTimer = setTimeout(function(){ if(!state.loading && state.activeTab === 'dashboard'){ render(); } }, 160);
   });
 
+  // ---------- otomatik güncelleme ----------
+  // Ana ekrana eklenen uygulama (iOS) index.html'i agresif önbelleğe alıyor ve yenilenemiyor.
+  // Sunucudaki sürümü no-store ile kontrol edip yeni sürüm varsa "Güncelle" çubuğunu gösteriyoruz.
+  var updateCheckedAt = 0;
+  async function checkForUpdate(){
+    var now = Date.now();
+    if(now - updateCheckedAt < 60000) return;
+    updateCheckedAt = now;
+    try{
+      var res = await fetch('./index.html?v=' + now, {cache:'no-store'});
+      if(!res.ok) return;
+      var txt = await res.text();
+      var m = txt.match(/APP_VERSION = '([^']+)'/);
+      if(m && m[1] && m[1] !== APP_VERSION){
+        var bar = document.getElementById('updateBar');
+        if(bar){ bar.hidden = false; requestAnimationFrame(function(){ bar.classList.add('show'); }); }
+      }
+    }catch(e){ /* çevrimdışı olabilir, sessiz geç */ }
+  }
+  var updBtn = document.getElementById('updateNow');
+  if(updBtn){
+    updBtn.onclick = function(){
+      var u = new URL(window.location.href);
+      u.searchParams.set('v', Date.now());   // önbelleği kesin atlat
+      window.location.replace(u.toString());
+    };
+  }
+  document.addEventListener('visibilitychange', function(){ if(!document.hidden){ checkForUpdate(); } });
+
   bindStaticControls();
   loadAll();
+  setTimeout(checkForUpdate, 2500);
 })();
 </script>
 </body>
