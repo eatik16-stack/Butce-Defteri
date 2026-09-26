@@ -246,6 +246,13 @@
   .warn-banner .ic{flex:none;font-size:16px;line-height:1.2;}
 
   /* category rows */
+  .cat-group{
+    display:flex;justify-content:space-between;align-items:baseline;gap:10px;
+    font-size:11px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--gold);
+    padding:14px 8px 8px;border-bottom:1px solid var(--line);margin-top:6px;
+  }
+  .cat-group:first-child{margin-top:0;padding-top:4px;}
+  .cat-group .num{font-size:12px;letter-spacing:0;color:var(--muted);font-weight:600;text-transform:none;}
   .cat-row{border-bottom:1px solid var(--line-soft);}
   .cat-row:last-child{border-bottom:none;}
   .cat-btn{
@@ -1080,7 +1087,7 @@
       ? '<div class="warn-banner"><span class="ic">⚠</span><span>Bütçe aşıldı: <strong>'+overCats.map(function(c){return escapeHtml(c.name);}).join(', ')+'</strong>. '+(overCats.length===1?'Bu kalemde':'Bu kalemlerde')+' ay sonuna kadar harcamayı sınırlamanız önerilir.</span></div>'
       : '';
 
-    var catRows = s.perCategory.map(function(c){
+    function renderCatRow(c){
       var open = state.expandedCategory === c.name;
       var isOver = c.known ? c.spent > c.planned : true;
       var barClass = c.pct >= 100 ? 'over' : (c.pct >= 85 ? 'amber' : '');
@@ -1103,7 +1110,25 @@
         + '</button>'
         + '<div class="cat-drill">' + drill + '</div>'
         + '</div>';
-    }).join('');
+    }
+
+    // Panelde önce değişken giderler (bütçesi büyükten küçüğe), en altta sabit giderler.
+    // Böylece ay içinde kontrol edilebilen kalemler ilk göze çarpar.
+    var byPlannedDesc = function(a, b){
+      if(b.planned !== a.planned) return b.planned - a.planned;
+      if(b.spent !== a.spent) return b.spent - a.spent;
+      return a.name.localeCompare(b.name, 'tr');
+    };
+    var variableCats = s.perCategory.filter(function(c){ return !c.known || FIXED_CATEGORY_NAMES.indexOf(c.name) === -1; }).sort(byPlannedDesc);
+    var fixedCats = s.perCategory.filter(function(c){ return c.known && FIXED_CATEGORY_NAMES.indexOf(c.name) !== -1; }).sort(byPlannedDesc);
+    var groupHead = function(title, list){
+      var spent = sum(list.map(function(c){ return c.spent; }));
+      var planned = sum(list.map(function(c){ return c.planned; }));
+      return '<div class="cat-group"><span>'+title+'</span><span class="num">'+fmtTRY(spent)+' / '+fmtTRY(planned)+'</span></div>';
+    };
+    var catRows = '';
+    if(variableCats.length){ catRows += groupHead('Değişken Giderler', variableCats) + variableCats.map(renderCatRow).join(''); }
+    if(fixedCats.length){ catRows += groupHead('Sabit Giderler', fixedCats) + fixedCats.map(renderCatRow).join(''); }
 
     var planSection = state.editingPlan ? renderPlanEditor() : '';
 
