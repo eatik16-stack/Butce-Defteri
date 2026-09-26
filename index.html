@@ -373,26 +373,21 @@
       {name:"Market", planned:15000},
       {name:"Genel Alışveriş", planned:7500},
       {name:"Araba kredisi", planned:20000},
-      {name:"Ofis Kirası", planned:20000},
       {name:"Dışarıda Yemek", planned:10000},
-      {name:"İrem Vergi", planned:8000},
-      {name:"Ofis Sigorta", planned:10000},
       {name:"Giyim", planned:10000},
       {name:"Kredi Kartı Kredisi", planned:7000},
       {name:"Fatura", planned:7000},
       {name:"Hediye", planned:5000},
-      {name:"Ofis Stopaj", planned:6000},
-      {name:"Ofis Aidatı", planned:5000},
       {name:"Taşıt Yakıt", planned:7000},
       {name:"Ev aidatı", planned:3600},
       {name:"Taşıt Genel Gider", planned:3000},
       {name:"Eczane", planned:1000},
       {name:"Sigara", planned:2000},
-      {name:"Ofis Genel Gider", planned:5000},
       {name:"Dijital Üyelikler", planned:1000},
       {name:"LG TV Taksit", planned:4500},
       {name:"Jimnastik", planned:4000},
-      {name:"Eğlence - Spor", planned:2000}
+      {name:"Eğlence - Spor", planned:2000},
+      {name:"Ofis Gider", planned:54000}
     ],
     incomeCategories:["Emre Maaş","İrem Allianz","İrem Ofis","Emre Ek Gelir"],
     savingsGoal: 1000000,
@@ -411,8 +406,15 @@
   var REMOVED_CATEGORIES = ["Kırtasiye"];
   // Sonradan eklenen kategoriler: Sheet'te yoksa bu varsayılan limitle eklenir.
   // Kullanıcı limiti değiştirmişse dokunulmaz (sadece eksikse eklenir).
-  var ADDED_CATEGORIES = [{name:"Eğlence - Spor", planned:2000}];
-  var FIXED_CATEGORY_NAMES = ["Ev kirası","Ev aidatı","Kredi Kartı Kredisi","Kreş","Ofis Kirası","Ofis Aidatı","Ofis Stopaj","Ofis Sigorta","Ofis Genel Gider","Fatura","Jimnastik","LG TV Taksit","Araba kredisi"];
+  var ADDED_CATEGORIES = [{name:"Eğlence - Spor", planned:2000}, {name:"Ofis Gider", planned:54000}];
+  // Birleştirilen kategoriler: eski ad -> yeni ad. Hem kategori listesinden kaldırılır
+  // hem de geçmiş gider kayıtlarının kategorisi yeni ada taşınır.
+  var CATEGORY_MERGES = {
+    "Ofis Kirası":"Ofis Gider", "Ofis Kira":"Ofis Gider", "İrem Vergi":"Ofis Gider",
+    "Ofis Sigorta":"Ofis Gider", "Ofis Aidatı":"Ofis Gider", "Ofis Stopaj":"Ofis Gider",
+    "Ofis Genel Gider":"Ofis Gider"
+  };
+  var FIXED_CATEGORY_NAMES = ["Ev kirası","Ev aidatı","Kredi Kartı Kredisi","Kreş","Ofis Gider","Fatura","Jimnastik","LG TV Taksit","Araba kredisi"];
   var SAVINGS_INSTRUMENTS = ["TL Nakit", "Altın (gram)", "Dolar", "Euro", "Hisse Senedi", "Fon"];
   var OTHER_CATEGORY = "Diğer (tanımsız kategori)";
 
@@ -543,7 +545,7 @@
     var changed = false;
     if(!Array.isArray(out.categories) || out.categories.length === 0){ out.categories = deepClone(DEFAULT_CONFIG.categories); changed = true; }
     var before = out.categories.length;
-    out.categories = out.categories.filter(function(c){ return c && REMOVED_CATEGORIES.indexOf(c.name) === -1; })
+    out.categories = out.categories.filter(function(c){ return c && REMOVED_CATEGORIES.indexOf(c.name) === -1 && !CATEGORY_MERGES[c.name]; })
       .map(function(c){ return {name:String(c.name), planned: Number(c.planned) || 0}; });
     if(out.categories.length !== before){ changed = true; }
     ADDED_CATEGORIES.forEach(function(add){
@@ -577,6 +579,7 @@
       var fixed = normalizeDate(e.date);
       if(fixed !== e.date){ changed = true; }
       var copy = deepClone(e); copy.date = fixed; copy.amount = Number(copy.amount) || 0;
+      if(copy.category && CATEGORY_MERGES[copy.category]){ copy.category = CATEGORY_MERGES[copy.category]; changed = true; }
       return copy;
     });
     return {list: out, changed: changed};
